@@ -26,30 +26,30 @@
             <p class="text-sm text-gray-500">Administrator</p>
         </div>
     </div>
-    
+     
     <nav class="space-y-2 flex-1">
         <!-- Users Section -->
         <div class="text-gray-800 font-medium px-4 py-2 mb-2">Main Menu</div>
         
-        <a href="/users" class="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-lg flex items-center space-x-3 font-medium">
+        <a href="users.php" class="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-lg flex items-center space-x-3 font-medium">
             <i data-feather="users" class="w-4 h-4"></i>
             <span>Users</span>
         </a>
 
         <!-- Courses Section -->
-        <a href="aside/users.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
+        <a href="courses.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
             <i data-feather="book-open" class="w-4 h-4"></i>
             <span>Courses</span>
         </a>
 
         <!-- Categories Section -->
-        <a href="aside/categories.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
+        <a href="categories.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
             <i data-feather="folder" class="w-4 h-4"></i>
             <span>Categories</span>
         </a>
 
         <!-- Tags Section -->
-        <a href="aside/courses.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
+        <a href="tags.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
             <i data-feather="tag" class="w-4 h-4"></i>
             <span>Tags</span>
         </a>
@@ -67,6 +67,8 @@
         <span>Logout</span>
     </a>
 </div>
+
+
 
         <!-- Main Content -->
         <div class="flex-1 p-8">

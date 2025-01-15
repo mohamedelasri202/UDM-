@@ -26,7 +26,7 @@
             <p class="text-sm text-gray-500">Administrator</p>
         </div>
     </div>
-    
+     
     <nav class="space-y-2 flex-1">
         <!-- Users Section -->
         <div class="text-gray-800 font-medium px-4 py-2 mb-2">Main Menu</div>
@@ -67,6 +67,7 @@
         <span>Logout</span>
     </a>
 </div>
+
 
 
         <!-- Main Content -->
@@ -214,6 +215,16 @@
             </div>
         </div>
     </div>
+    <h1>Insert Data</h1>
+    <form action="insert_data.php" method="POST">
+        <label for="title">Title:</label>
+        <input type="text" name="title" id="title" required><br><br>
+
+        <label for="description">Description:</label>
+        <textarea name="description" id="description" required></textarea><br><br>
+
+        <input type="submit" value="Submit">
+    </form>
     <script>
         feather.replace();
     </script>
