@@ -1,95 +1,35 @@
-
-
-// connection.php
 <?php
+// register.php
+session_start();
+require_once '../classes/userClasse.php';
 
-// connection.php
+$message = '';
 
-require_once'../classes/connection.php';
-class User {
-    private $email;
-    private $firstName;
-    private $lastName;
-    private $password;
-    private $roleId;
-    private $db;
-
-    public function __construct($database, $email, $firstName, $lastName, $password, $roleId) {
-        $this->db = $database;
-        $this->email = $email;
-        $this->firstName = $firstName;
-        $this->lastName = $lastName;
-        $this->password = password_hash($password, PASSWORD_DEFAULT);
-        $this->roleId = $roleId;
-    }
-
-    public function regestration() {
-        try {
-            $sql = "INSERT INTO user (name, last_name, email, password, role_id)
-                    VALUES (:name, :last_name, :email, :password, :role_id)";
-            
-            $stmt = $this->db->prepare($sql);
-            
-            $result = $stmt->execute([
-                'name' => $this->firstName,
-                'last_name' => $this->lastName,
-                'email' => $this->email,
-                'password' => $this->password,
-                'role_id' => $this->roleId
-            ]);
-            
-            if (!$result) {
-                throw new Exception("Failed to insert user");
-            }
-            
-            return $this->db->lastInsertId();
-            
-        } catch (PDOException $e) {
-            error_log("Database error: " . $e->getMessage());
-            throw new Exception("Error inserting user: " . $e->getMessage());
-        }
-    }
-
-
-}
-
-$db = null;
 try {
-    $database = database::getinstance();
-    $db = $database->getconnection();
-} catch (Exception $e) {
-    die("Connection failed: " . $e->getMessage());
-}
-
-$message = '';  //  store messages for the user
-
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    try {
+    if ($_SERVER["REQUEST_METHOD"] === "POST") {
         if (
             isset($_POST['name'], $_POST['last_name'], $_POST['email'], $_POST['password'], $_POST['role_id']) &&
-            !empty($_POST['name']) && !empty($_POST['last_name']) && !empty($_POST['email']) && 
+            !empty($_POST['name']) && !empty($_POST['last_name']) && !empty($_POST['email']) &&
             !empty($_POST['password']) && !empty($_POST['role_id'])
         ) {
-            // Create new user instance
-            $user = new User(
-                $db,
-                $_POST['email'],
+            $userId = User::signup(
                 $_POST['name'],
                 $_POST['last_name'],
+                $_POST['email'],
                 $_POST['password'],
                 $_POST['role_id']
             );
-            
-            // Insert user and get ID
-            $userId = $user->regestration();
             $message = "User registered successfully with ID: " . $userId;
             
+            // Optional: Redirect to login page after successful registration
+            // header("Location: login.php");
+            // exit();
         } else {
-            $message = "All fields are required";
+            $message = "All fields are required for registration";
         }
-    } catch(Exception $e) {
-        $message = "Error: " . $e->getMessage();
     }
+} catch(Exception $e) {
+    $message = "Registration Error: " . $e->getMessage();
 }
 ?>
 

@@ -1,160 +1,31 @@
-// connection.php
 <?php
-
-class Database {
-    private static $instance = null;
-    private $pdo;
-
-    private function __construct($dsn, $username, $password) {
-        try {
-            $this->pdo = new PDO($dsn, $username, $password);
-            $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        } catch (PDOException $e) {
-            error_log("Database connection error: " . $e->getMessage());
-            throw new Exception("Database connection failed.");
-        }
-    }
-
-    public static function getInstance($dsn = null, $username = null, $password = null) {
-        if (self::$instance === null) {
-            $dsn = $dsn ?? 'mysql:host=localhost;dbname=udm';
-            $username = $username ?? 'root';
-            $password = $password ?? '';
-            self::$instance = new Database($dsn, $username, $password);
-        }
-        return self::$instance;
-    }
-
-    public function getConnection() {
-        return $this->pdo;
-    }
-}
-
-class User {
-    private $id;
-    private $name;
-    private $lastName;
-    private $email;
-    private $password;
-    private $roleId;
-
-    public function __construct($id = null, $name = null, $lastName = null, $email = null, $password = null, $roleId = null) {
-        $this->id = $id;
-        $this->name = $name;
-        $this->lastName = $lastName;
-        $this->email = $email;
-        $this->password = $password;
-        $this->roleId = $roleId;
-    }
-
-    // Registration method
-    public static function signup($name, $lastName, $email, $password, $roleId) {
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception("Invalid email format");
-        }
-
-        if (strlen($password) < 6) {
-            throw new Exception("Password must be at least 6 characters long");
-        }
-
-        $name = htmlspecialchars($name);
-        $lastName = htmlspecialchars($lastName);
-
-        // Check if email already exists
-        if (self::findByEmail($email)) {
-            throw new Exception("Email is already registered");
-        }
-
-        try {
-            $db = Database::getInstance()->getConnection();
-            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
-            
-            $sql = "INSERT INTO user (name, last_name, email, password, role_id) 
-                    VALUES (:name, :last_name, :email, :password, :role_id)";
-            
-            $stmt = $db->prepare($sql);
-            $stmt->execute([
-                'name' => $name,
-                'last_name' => $lastName,
-                'email' => $email,
-                'password' => $hashedPassword,
-                'role_id' => $roleId
-            ]);
-            
-            return $db->lastInsertId();
-        } catch (PDOException $e) {
-            error_log("Database error: " . $e->getMessage());
-            throw new Exception("Error during registration");
-        }
-    }  
-    public function getId() {
-        return $this->id;
-    }
-    
-    
-    public function getEmail() {
-        return $this->email;
-    }
-
-    // Login method
-    public static function signin($email, $password) {
-        $user = self::findByEmail($email);
-        
-        if (!$user || !password_verify($password, $user->password)) {
-            throw new Exception("Invalid email or password");
-        }
-
-        return $user;
-    }
-
-    // Find user by email
-    public static function findByEmail($email) {
-        $db = Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT * FROM user WHERE email = :email");
-        $stmt->execute(['email' => $email]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($result) {
-            return new User(
-                $result['id'],
-                $result['name'],
-                $result['last_name'],
-                $result['email'],
-                $result['password'],
-                $result['role_id']
-            );
-        }
-
-        return null;
-    }
-}
-
 // login.php
+session_start();
+require_once '../classes/userClasse.php';
 
 $message = '';
-session_start();
 
-if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    try {
-        if (
-            isset($_POST['email'], $_POST['password']) &&
-            !empty($_POST['email']) && !empty($_POST['password'])
-        ) {
+try {
+    if ($_SERVER["REQUEST_METHOD"] === "POST") {
+        if (isset($_POST['email'], $_POST['password']) && !empty($_POST['email']) && !empty($_POST['password'])) {
             $user = User::signin($_POST['email'], $_POST['password']);
             
             // Set session variables
             $_SESSION['user_id'] = $user->getId();
             $_SESSION['user_email'] = $user->getEmail();
+            $_SESSION['user_nom'] = $user->getNom();
+            $_SESSION['user_prenom'] = $user->getPrenom();
+            $_SESSION['user_role'] = $user->getRoleId();
             
             // Redirect to dashboard or home page
-            header("Location:../index.php");
+            header("Location: ../index.php");
             exit();
         } else {
-            $message = "All fields are required";
+            $message = "Email and password are required";
         }
-    } catch(Exception $e) {
-        $message = "Error: " . $e->getMessage();
     }
+} catch(Exception $e) {
+    $message = "Login Error: " . $e->getMessage();
 }
 ?>
 
