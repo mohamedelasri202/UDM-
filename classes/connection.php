@@ -1,9 +1,9 @@
-<?php 
-class database {
-    private static $instance = null; // Fixed typo
+<?php
+class Database {
+    private static $instance = null;
     private $pdo;
 
-    public function __construct($dsn, $username, $password) {
+    private function __construct($dsn, $username, $password) {
         try {
             $this->pdo = new PDO($dsn, $username, $password);
             $this->pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
@@ -13,18 +13,17 @@ class database {
         }
     }
 
-    public static function getinstance($dsn = null, $username = null, $password = null) {
+    public static function getInstance($dsn = null, $username = null, $password = null) {
         if (self::$instance === null) {
             $dsn = $dsn ?? 'mysql:host=localhost;dbname=udm';
             $username = $username ?? 'root';
             $password = $password ?? '';
-            self::$instance = new database($dsn, $username, $password);
+            self::$instance = new Database($dsn, $username, $password);
         }
         return self::$instance;
     }
 
-    public function getconnection() {
-        var_dump($this->pdo); // var_dump before return
+    public function getConnection() {
         return $this->pdo;
     }
 }

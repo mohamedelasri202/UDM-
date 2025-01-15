@@ -1,45 +1,43 @@
 <?php 
  require_once '../classes/userClasse.php';
+ // Handle POST actions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $userId = $_POST['user_id'] ?? null;
+    $action = $_POST['action'] ?? null;
+    
+    if ($userId) {
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT * FROM user WHERE id = :id");
+        $stmt->bindParam(':id', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        if ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $user = new User(
+                $result['id'],
+                $result['name'],
+                $result['last_name'],
+                $result['email'],
+                $result['password'],
+                $result['role_id'],
+                $result['status']
+            );
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+            switch ($action) {
+                case 'toggle_status':
+                    $user->toggleStatus();
+                    break;
+                case 'delete':
+                    $user->delete();
+                    break;
+            }
+        }
+    }
+    // Redirect to prevent form resubmission
+    header('Location: ' . $_SERVER['PHP_SELF']);
+    exit;
+}
+ $users = User::getAllUsers()
 ?>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -185,61 +183,49 @@
                     <h3 class="text-xl font-semibold text-gray-800">Users List</h3>
                 </div>
                 <div class="p-6">
-                    <table class="w-full">
-                        <thead>
-                            <tr class="text-left text-sm font-medium text-gray-500">
-                                <th class="pb-4 pr-6">Name</th>
-                                <th class="pb-4 pr-6">Email</th>
-                                <th class="pb-4 pr-6">Status</th>
-                                <th class="pb-4 pr-6">Role</th>
-                                <th class="pb-4">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody class="text-gray-600">
-                            <tr class="border-t border-gray-100">
-                                <td class="py-4 pr-6">John Doe</td>
-                                <td class="py-4 pr-6">john.doe@example.com</td>
-                                <td class="py-4 pr-6">
-                                    <span class="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded-full">Active</span>
-                                </td>
-                                <td class="py-4 pr-6">Student</td>
-                                <td class="py-4">
-                                    <div class="flex space-x-2">
-                                        <button class="text-blue-500 hover:text-blue-600">
-                                            <i data-feather="edit-2" class="w-4 h-4"></i>
-                                        </button>
-                                        <button class="text-yellow-500 hover:text-yellow-600">
-                                            <i data-feather="pause" class="w-4 h-4"></i>
-                                        </button>
-                                        <button class="text-red-500 hover:text-red-600">
-                                            <i data-feather="trash-2" class="w-4 h-4"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr class="border-t border-gray-100">
-                                <td class="py-4 pr-6">Jane Smith</td>
-                                <td class="py-4 pr-6">jane.smith@example.com</td>
-                                <td class="py-4 pr-6">
-                                    <span class="px-3 py-1 text-xs font-medium text-yellow-600 bg-yellow-50 rounded-full">Suspended</span>
-                                </td>
-                                <td class="py-4 pr-6">Teacher</td>
-                                <td class="py-4">
-                                    <div class="flex space-x-2">
-                                        <button class="text-blue-500 hover:text-blue-600">
-                                            <i data-feather="edit-2" class="w-4 h-4"></i>
-                                        </button>
-                                        <button class="text-green-500 hover:text-green-600">
-                                            <i data-feather="play" class="w-4 h-4"></i>
-                                        </button>
-                                        <button class="text-red-500 hover:text-red-600">
-                                            <i data-feather="trash-2" class="w-4 h-4"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <table class="w-full">
+            <thead>
+                <tr class="text-left text-sm font-medium text-gray-500">
+                    <th class="pb-4 pr-6">Name</th>
+                    <th class="pb-4 pr-6">Email</th>
+                    <th class="pb-4 pr-6">Status</th>
+                    <th class="pb-4">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="text-gray-600">
+                <?php foreach($users as $user): ?>
+                    <tr class="border-t border-gray-100">
+                        <td class="py-4 pr-6"><?php echo htmlspecialchars($user->getName() . " " . $user->getLastName()); ?></td>
+                        <td class="py-4 pr-6"><?php echo htmlspecialchars($user->getEmail()); ?></td>
+                        <td class="py-4 pr-6">
+                            <?php if($user->getStatus() === 'activated'): ?>
+                                <span class="px-3 py-1 text-xs font-medium text-green-600 bg-green-50 rounded-full">Active</span>
+                            <?php else: ?>
+                                <span class="px-3 py-1 text-xs font-medium text-yellow-600 bg-yellow-50 rounded-full">Suspended</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="py-4">
+                            <div class="flex space-x-2">
+                                <form method="post" class="inline" onsubmit="return confirm('Are you sure you want to toggle this user\'s status?');">
+                                    <input type="hidden" name="user_id" value="<?php echo $user->getId(); ?>">
+                                    <input type="hidden" name="action" value="toggle_status">
+                                    <button type="submit" class="<?php echo $user->getStatus() === 'activated' ? 'text-yellow-500 hover:text-yellow-600' : 'text-green-500 hover:text-green-600'; ?>">
+                                        <i data-feather="<?php echo $user->getStatus() === 'activated' ? 'pause' : 'play'; ?>" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                                <form method="post" class="inline" onsubmit="return confirm('Are you sure you want to delete this user?');">
+                                    <input type="hidden" name="user_id" value="<?php echo $user->getId(); ?>">
+                                    <input type="hidden" name="action" value="delete">
+                                    <button type="submit" class="text-red-500 hover:text-red-600">
+                                        <i data-feather="trash-2" class="w-4 h-4"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
                 </div>
             </div>
         </div>

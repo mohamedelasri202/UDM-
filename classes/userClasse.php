@@ -1,67 +1,70 @@
-
-<?php 
-
+<?php
+// User.php
 require_once 'connection.php';
-
-
-
-
 
 class User {
     private $id;
     private $name;
-    private $last_name;
+    private $lastName;
     private $email;
     private $passwordHash;
     private $roleId;
+    private $status;
 
-    public function __construct($id = null, $name = null, $last_name = null, $email = null, $passwordHash = null, $roleId = null) {
+    const ROLE_TEACHER = 1;
+    const ROLE_STUDENT = 2;
+    const STATUS_WAITING = 'waiting';
+    const STATUS_ACTIVATED = 'activated';
+
+    public function __construct($id = null, $name = null, $lastName = null, $email = null, $passwordHash = null, $roleId = null, $status = null) {
         $this->id = $id;
-        $this-> name= $name;
-        $this->last_name = $last_name;
+        $this->name = $name;
+        $this->lastName = $lastName;
         $this->email = $email;
         $this->passwordHash = $passwordHash;
         $this->roleId = $roleId;
+        $this->status = $status;
     }
 
     public function __toString() {
-        return $this->name . " " . $this->last_name;
+        return $this->name . " " . $this->lastName;
     }
 
     // Getters
     public function getId() { return $this->id; }
-    public function getNom() { return $this->name; }
-    public function getPrenom() { return $this->last_name; }
+    public function getName() { return $this->name; }
+    public function getLastName() { return $this->lastName; }
     public function getEmail() { return $this->email; }
     public function getRoleId() { return $this->roleId; }
+    public function getStatus() { return $this->status; }
 
-    // Password hashing method
     private function setPasswordHash($password) {
         $this->passwordHash = password_hash($password, PASSWORD_BCRYPT);
     }
 
-    // Save user to database
+    private function determineStatus($roleId) {
+        return $roleId == self::ROLE_TEACHER ? self::STATUS_WAITING : self::STATUS_ACTIVATED;
+    }
+
     public function save() {
         $db = Database::getInstance()->getConnection();
         try {
             if ($this->id) {
-                // Update existing user
-                $stmt = $db->prepare("UPDATE users SET nom = :nom, prenom = :prenom, email = :email, role_id = :role_id WHERE id = :id");
+                $stmt = $db->prepare("UPDATE user SET name = :name, last_name = :last_name, email = :email, role_id = :role_id, status = :status WHERE id = :id");
                 $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);
-                $stmt->bindParam(':nom', $this->name, PDO::PARAM_STR);
-                $stmt->bindParam(':prenom', $this->name, PDO::PARAM_STR);
-                $stmt->bindParam(':email', $this->email, PDO::PARAM_STR);
-                $stmt->bindParam(':role_id', $this->roleId, PDO::PARAM_INT);
-                $stmt->execute();
             } else {
-                // Insert new user
-                $stmt = $db->prepare("INSERT INTO user (name, last_name, email, password, role_id) VALUES (:name, :last_name, :email, :password, :role_id)");
-                $stmt->bindParam(':nom', $this->name, PDO::PARAM_STR);
-                $stmt->bindParam(':prenom', $this->last_name, PDO::PARAM_STR);
-                $stmt->bindParam(':email', $this->email, PDO::PARAM_STR);
+                $stmt = $db->prepare("INSERT INTO user (name, last_name, email, password, role_id, status) VALUES (:name, :last_name, :email, :password, :role_id, :status)");
                 $stmt->bindParam(':password', $this->passwordHash, PDO::PARAM_STR);
-                $stmt->bindParam(':role_id', $this->roleId, PDO::PARAM_INT);
-                $stmt->execute();
+            }
+
+            $stmt->bindParam(':name', $this->name, PDO::PARAM_STR);
+            $stmt->bindParam(':last_name', $this->lastName, PDO::PARAM_STR);
+            $stmt->bindParam(':email', $this->email, PDO::PARAM_STR);
+            $stmt->bindParam(':role_id', $this->roleId, PDO::PARAM_INT);
+            $stmt->bindParam(':status', $this->status, PDO::PARAM_STR);
+            $stmt->execute();
+
+            if (!$this->id) {
                 $this->id = $db->lastInsertId();
             }
             return $this->id;
@@ -70,12 +73,9 @@ class User {
             throw new Exception("An error occurred while saving the user.");
         }
     }
-
-    // Search user by name
-    public static function searchByName($name) {
+    public static function getAllUsers() {
         $db = Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT * FROM user WHERE name LIKE :name OR last_name LIKE :name");
-        $stmt->bindValue(':name', '%' . $name . '%', PDO::PARAM_STR);
+        $stmt = $db->prepare("SELECT * FROM user");
         $stmt->execute();
         
         $users = [];
@@ -86,34 +86,54 @@ class User {
                 $result['last_name'],
                 $result['email'],
                 $result['password'],
-                $result['role_id']
+                $result['role_id'],
+                $result['status']
             );
         }
         return $users;
     }
 
-    // Get user by ID
-    public static function getById($id) {
-        $db = Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT * FROM users WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->execute();
-
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        if ($result) {
-            return new User(
-                $result['id'],
-                $result['name'],
-                $result['last_name'],
-                $result['email'],
-                $result['password'],
-                $result['role_id']
-            );
+    public static function signup($name, $lastName, $email, $password, $roleId) {
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            throw new Exception("Invalid email format");
         }
-        return null;
+
+        if (strlen($password) < 6) {
+            throw new Exception("Password must be at least 6 characters long");
+        }
+
+        $name = htmlspecialchars($name);
+        $lastName = htmlspecialchars($lastName);
+
+        if (self::findByEmail($email)) {
+            throw new Exception("Email is already registered");
+        }
+
+        $status = $roleId == self::ROLE_TEACHER ? self::STATUS_WAITING : self::STATUS_ACTIVATED;
+        
+        $user = new User(null, $name, $lastName, $email, null, $roleId, $status);
+        $user->setPasswordHash($password);
+        return $user->save();
     }
 
-    // Find user by email
+    public static function signin($email, $password) {
+        $user = self::findByEmail($email);
+        
+        if (!$user) {
+            throw new Exception("Invalid email or password");
+        }
+
+        if (!password_verify($password, $user->passwordHash)) {
+            throw new Exception("Invalid email or password");
+        }
+
+        if ($user->status !== self::STATUS_ACTIVATED) {
+            throw new Exception("Your account is pending approval");
+        }
+
+        return $user;
+    }
+
     public static function findByEmail($email) {
         $db = Database::getInstance()->getConnection();
         $stmt = $db->prepare("SELECT * FROM user WHERE email = :email");
@@ -128,62 +148,50 @@ class User {
                 $result['last_name'],
                 $result['email'],
                 $result['password'],
-                $result['role_id']
+                $result['role_id'],
+                $result['status']
             );
         }
         return null;
     }
+    // Add these methods to your User.php class
 
-    // Registration method (signup)
-    public static function signup($name, $last_name, $email, $password, $roleId) {
-        // Validate email format
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            throw new Exception("Invalid email format");
-        }
-
-        // Validate password length
-        if (strlen($password) < 6) {
-            throw new Exception("Password must be at least 6 characters long");
-        }
-
-        // Sanitize input
-        $name = htmlspecialchars($name);
-        $last_name= htmlspecialchars($last_name);
-
-        // Check if email exists
-        if (self::findByEmail($email)) {
-            throw new Exception("Email is already registered");
-        }
-
-        // Create and save new user
-        $user = new User(null, $name, $last_name, $email, null, $roleId);
-        $user->setPasswordHash($password);
-        return $user->save();
-    }
-
-    // Login method (signin)
-    public static function signin($email, $password) {
-        $user = self::findByEmail($email);
-        
-        if (!$user || !password_verify($password, $user->passwordHash)) {
-            throw new Exception("Invalid email or password");
-        }
-
-        return $user;
-    }
-
-    // Change password method
-    public function changePassword($newPassword) {
-        if (strlen($newPassword) < 6) {
-            throw new Exception("Password must be at least 6 characters long");
-        }
-
-        $this->setPasswordHash($newPassword);
-        
-        $db = Database::getInstance()->getConnection();
-        $stmt = $db->prepare("UPDATE users SET password = :password WHERE id = :id");
-        $stmt->bindParam(':password', $this->passwordHash, PDO::PARAM_STR);
+// Delete user
+public function delete() {
+    $db = Database::getInstance()->getConnection();
+    try {
+        $stmt = $db->prepare("DELETE FROM user WHERE id = :id");
         $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);
-        $stmt->execute();
+        return $stmt->execute();
+    } catch (PDOException $e) {
+        error_log("Delete error: " . $e->getMessage());
+        throw new Exception("Error deleting user");
     }
 }
+
+// Toggle user status
+public function toggleStatus() {
+    $newStatus = $this->status === self::STATUS_ACTIVATED ? 'suspended' : self::STATUS_ACTIVATED;
+    
+    $db = Database::getInstance()->getConnection();
+    try {
+        $stmt = $db->prepare("UPDATE user SET status = :status WHERE id = :id");
+        $stmt->bindParam(':status', $newStatus, PDO::PARAM_STR);
+        $stmt->bindParam(':id', $this->id, PDO::PARAM_INT);
+        
+        if ($stmt->execute()) {
+            $this->status = $newStatus;
+            return true;
+        }
+        return false;
+    } catch (PDOException $e) {
+        error_log("Status update error: " . $e->getMessage());
+        throw new Exception("Error updating user status");
+    }
+}
+}
+
+
+?>
+
+

@@ -19,11 +19,11 @@ try {
                 $_POST['password'],
                 $_POST['role_id']
             );
-            $message = "User registered successfully with ID: " . $userId;
-            
-            // Optional: Redirect to login page after successful registration
-            // header("Location: login.php");
-            // exit();
+
+            $message = "Registration successful! ";
+            $message .= $_POST['role_id'] == User::ROLE_TEACHER 
+                ? "Your account is pending approval." 
+                : "You can now login to your account.";
         } else {
             $message = "All fields are required for registration";
         }
@@ -32,6 +32,7 @@ try {
     $message = "Registration Error: " . $e->getMessage();
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -96,48 +97,43 @@ try {
     </style>
 </head>
 <body>
-    <div class="container">
-        <h2>User Registration</h2>
+<?php if (!empty($message)) : ?>
+        <p><?php echo htmlspecialchars($message); ?></p>
+    <?php endif; ?>
+    
+    <form method="POST" action="register.php">
+        <div>
+            <label for="name">Name:</label>
+            <input type="text" id="name" name="name" required>
+        </div>
         
-        <?php if (!empty($message)): ?>
-            <div class="message <?php echo (strpos($message, 'Error') !== false) ? 'error' : 'success'; ?>">
-                <?php echo htmlspecialchars($message); ?>
-            </div>
-        <?php endif; ?>
-
-        <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" onsubmit="return validateForm()">
-            <div class="form-group">
-                <label>First Name <span class="required">*</span></label>
-                <input type="text" name="name" id="name" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Last Name <span class="required">*</span></label>
-                <input type="text" name="last_name" id="last_name" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Email <span class="required">*</span></label>
-                <input type="email" name="email" id="email" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Password <span class="required">*</span></label>
-                <input type="password" name="password" id="password" required>
-            </div>
-            
-            <div class="form-group">
-                <label>Role <span class="required">*</span></label>
-                <select name="role_id" id="role_id" required>
-                    <option value="">Select Role</option>
-                    <option value="1">Admin</option>
-                    <option value="2">User</option>
-                </select>
-            </div>
-            
-            <button type="submit">Register</button>
-        </form>
-    </div>
+        <div>
+            <label for="last_name">Last Name:</label>
+            <input type="text" id="last_name" name="last_name" required>
+        </div>
+        
+        <div>
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div>
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+        </div>
+        
+        <div>
+            <label for="role_id">Role:</label>
+            <select id="role_id" name="role_id" required>
+                <option value="2">Student</option>
+                <option value="1">Teacher</option>
+            </select>
+        </div>
+        
+        <button type="submit">Register</button>
+    </form>
+    
+    <p>Already have an account? <a href="login.php">Login here</a></p>
 
     <script>
         function validateForm() {

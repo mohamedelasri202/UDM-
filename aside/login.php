@@ -1,5 +1,7 @@
 <?php
 // login.php
+
+// login.php
 session_start();
 require_once '../classes/userClasse.php';
 
@@ -10,14 +12,12 @@ try {
         if (isset($_POST['email'], $_POST['password']) && !empty($_POST['email']) && !empty($_POST['password'])) {
             $user = User::signin($_POST['email'], $_POST['password']);
             
-            // Set session variables
             $_SESSION['user_id'] = $user->getId();
             $_SESSION['user_email'] = $user->getEmail();
-            $_SESSION['user_nom'] = $user->getNom();
-            $_SESSION['user_prenom'] = $user->getPrenom();
+            $_SESSION['user_name'] = $user->getName();
+            $_SESSION['user_last_name'] = $user->getLastName();
             $_SESSION['user_role'] = $user->getRoleId();
             
-            // Redirect to dashboard or home page
             header("Location: ../index.php");
             exit();
         } else {
@@ -28,6 +28,7 @@ try {
     $message = "Login Error: " . $e->getMessage();
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
