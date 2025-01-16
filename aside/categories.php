@@ -1,29 +1,51 @@
 <?php
+
 require_once '../classes/categorieClasse.php';
 
-// Process form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $category = new Category(
-        null, // id is null for new categories
-        $_POST['title'],
-        $_POST['description']
-    );
-
-    if ($category->save()) {
-        echo "Category saved successfully!";
-    } else {
-        echo "Error saving category.";
+// Handle Delete
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
+    $category = Category::findById($_POST['delete_id']);
+    if ($category) {
+        if ($category->delete()) {
+            header('Location: ' . $_SERVER['PHP_SELF']);
+            exit;
+        }
     }
 }
 
-// Display all categories
+// Handle Edit Form Display
+$editCategory = null;
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['edit_id'])) {
+    $editCategory = Category::findById($_GET['edit_id']);
+}
+
+// Handle Save (both new and edit)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['id'])) {
+        // This is an edit submission
+        $category = Category::findById($_POST['id']);
+        if ($category) {
+            $category->setTitle($_POST['title']);
+            $category->setDescription($_POST['description']);
+        }
+    } else {
+        // This is a new category
+        $category = new Category(
+            null,
+            $_POST['title'],
+            $_POST['description']
+        );
+    }
+
+    if ($category->save()) {
+        header('Location: ' . $_SERVER['PHP_SELF']);
+        exit;
+    }
+}
+
+// Get all categories for display
 $categories = Category::getAll();
-
-
-
-
-
-
+?>
 
 
 
@@ -235,53 +257,27 @@ $categories = Category::getAll();
                         <tbody class="text-gray-600">
                             <?php foreach ($categories as $category):?>
                             <tr class="border-t border-gray-100">
-                                <td class="py-4 pr-6">
-                                    <div class="flex items-center">
-                                        <div class="w-8 h-8 rounded bg-blue-100 flex items-center justify-center mr-3">
-                                            <i data-feather="code" class="w-4 h-4 text-blue-500"></i>
-                                        </div>
-                                        <span class="font-medium">Programming</span>
-                                    </div>
-                                </td>
-                                <td class="py-4 pr-6">
-                                    <p class="truncate w-96">Learn various programming languages and software development skills</p>
-                                </td>
-                                <td class="py-4 pr-6">42</td>
+                                <td class="py-4 pr-6"> <?php echo htmlspecialchars($category->getTitle());?></td>
+                                <td class="py-4 pr-6"><p class="truncate w-96"><?php echo htmlspecialchars($category->getDescription());?></p> </td>
                                 <td class="py-4">
                                     <div class="flex space-x-2">
-                                        <button class="text-blue-500 hover:text-blue-600">
-                                            <i data-feather="edit-2" class="w-4 h-4"></i>
-                                        </button>
-                                        <button class="text-red-500 hover:text-red-600">
-                                            <i data-feather="trash-2" class="w-4 h-4"></i>
-                                        </button>
+                                    <form action="" method="GET" style="display: inline;">
+                <input type="hidden" name="edit_id" value="<?php echo $category->getId(); ?>">
+                <button type="submit" class="text-blue-500 hover:text-blue-600">
+                    <i data-feather="edit-2" class="w-4 h-4"></i>
+                </button>
+            </form>
+            <form action="" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this category?');">
+                <input type="hidden" name="delete_id" value="<?php echo $category->getId(); ?>">
+                <button type="submit" class="text-red-500 hover:text-red-600">
+                    <i data-feather="trash-2" class="w-4 h-4"></i>
+                </button>
+            </form>
                                     </div>
                                 </td>
                             </tr>
-                            <tr class="border-t border-gray-100">
-                                <td class="py-4 pr-6">
-                                    <div class="flex items-center">
-                                        <div class="w-8 h-8 rounded bg-green-100 flex items-center justify-center mr-3">
-                                            <i data-feather="pen-tool" class="w-4 h-4 text-green-500"></i>
-                                        </div>
-                                        <span class="font-medium">Design</span>
-                                    </div>
-                                </td>
-                                <td class="py-4 pr-6">
-                                    <p class="truncate w-96">Explore graphic design, UI/UX, and digital art fundamentals</p>
-                                </td>
-                                <td class="py-4 pr-6">28</td>
-                                <td class="py-4">
-                                    <div class="flex space-x-2">
-                                        <button class="text-blue-500 hover:text-blue-600">
-                                            <i data-feather="edit-2" class="w-4 h-4"></i>
-                                        </button>
-                                        <button class="text-red-500 hover:text-red-600">
-                                            <i data-feather="trash-2" class="w-4 h-4"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+
+                            <?php endforeach;?>
                         </tbody>
                     </table>
                 </div>
@@ -320,6 +316,44 @@ $categories = Category::getAll();
             </form>
         </div>
     </div>
+    <div class="p-6">
+    <form method="POST" action="">
+        <?php if ($editCategory): ?>
+            <input type="hidden" name="id" value="<?php echo $editCategory->getId(); ?>">
+        <?php endif; ?>
+        
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="title">
+                Title
+            </label>
+            <input type="text" 
+                   name="title" 
+                   value="<?php echo $editCategory ? htmlspecialchars($editCategory->getTitle()) : ''; ?>"
+                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+        </div>
+        
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
+                Description
+            </label>
+            <textarea name="description" 
+                      class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+            ><?php echo $editCategory ? htmlspecialchars($editCategory->getDescription()) : ''; ?></textarea>
+        </div>
+        
+        <button type="submit" 
+                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
+            <?php echo $editCategory ? 'Update' : 'Create'; ?> Category
+        </button>
+        
+        <?php if ($editCategory): ?>
+            <a href="<?php echo $_SERVER['PHP_SELF']; ?>" 
+               class="ml-2 inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800">
+                Cancel Edit
+            </a>
+        <?php endif; ?>
+    </form>
+</div>
     <script>
         // Initialize Feather Icons
         feather.replace();
