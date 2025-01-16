@@ -1,6 +1,7 @@
-<?php
 
-require_once '../classes/categorieClasse.php';
+
+
+<?php require_once '../classes/categorieClasse.php';
 
 // Handle Delete
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
@@ -13,15 +14,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
     }
 }
 
-// Handle Edit Form Display
-$editCategory = null;
-if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['edit_id'])) {
-    $editCategory = Category::findById($_GET['edit_id']);
-}
-
 // Handle Save (both new and edit)
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['id'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['title'])) {
+    if (isset($_POST['id']) && !empty($_POST['id'])) {
         // This is an edit submission
         $category = Category::findById($_POST['id']);
         if ($category) {
@@ -45,16 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Get all categories for display
 $categories = Category::getAll();
-?>
-
 
 
 
 ?>
-
-
-
-
 
 
 
@@ -72,39 +61,41 @@ $categories = Category::getAll();
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Categories Management</title>
     <style>
-        body {
+       
+            body {
             font-family: 'Inter', sans-serif;
         }
         .slide-panel {
-    position: fixed;
-    top: 0;
-    right: -400px;
-    width: 400px;
-    height: 100vh;
-    background: white;
-    transition: right 0.3s ease;
-    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
-}
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            transition: right 0.3s ease;
+            box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+        }
 
-.slide-panel.open {
-    right: 0;
-}
+        .slide-panel.open {
+            right: 0;
+        }
 
-.overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-    display: none;
-    z-index: 999;
-}
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            z-index: 999;
+        }
 
-.overlay.show {
-    display: block;
-}
+        .overlay.show {
+            display: block;
+        }
+    </style>
     </style>
 </head>
 <body class="bg-gray-50">
@@ -236,13 +227,13 @@ $categories = Category::getAll();
             <!-- Categories Table -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div class="p-6 border-b border-gray-100">
-                    <div class="flex justify-between items-center p-6">
-                    <h3 class="text-xl font-semibold text-gray-800">Categories List</h3>
-                    <button id="addCategoryBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-600 transition-colors">
-                    <i data-feather="plus" class="w-4 h-4"></i>
-                    <span>Add Category</span>
-                    </button>
-                 </div>
+                    <div class="flex justify-between items-center">
+                        <h3 class="text-xl font-semibold text-gray-800">Categories List</h3>
+                        <button id="addCategoryBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-600 transition-colors">
+                            <i data-feather="plus" class="w-4 h-4"></i>
+                            <span>Add Category</span>
+                        </button>
+                    </div>
                 </div>
                 <div class="p-6">
                     <table class="w-full">
@@ -250,62 +241,60 @@ $categories = Category::getAll();
                             <tr class="text-left text-sm font-medium text-gray-500">
                                 <th class="pb-4 pr-6">Title</th>
                                 <th class="pb-4 pr-6">Description</th>
-                                <th class="pb-4 pr-6">Courses</th>
                                 <th class="pb-4">Actions</th>
                             </tr>
                         </thead>
                         <tbody class="text-gray-600">
-                            <?php foreach ($categories as $category):?>
-                            <tr class="border-t border-gray-100">
-                                <td class="py-4 pr-6"> <?php echo htmlspecialchars($category->getTitle());?></td>
-                                <td class="py-4 pr-6"><p class="truncate w-96"><?php echo htmlspecialchars($category->getDescription());?></p> </td>
-                                <td class="py-4">
-                                    <div class="flex space-x-2">
-                                    <form action="" method="GET" style="display: inline;">
-                <input type="hidden" name="edit_id" value="<?php echo $category->getId(); ?>">
-                <button type="submit" class="text-blue-500 hover:text-blue-600">
-                    <i data-feather="edit-2" class="w-4 h-4"></i>
-                </button>
-            </form>
-            <form action="" method="POST" style="display: inline;" onsubmit="return confirm('Are you sure you want to delete this category?');">
-                <input type="hidden" name="delete_id" value="<?php echo $category->getId(); ?>">
-                <button type="submit" class="text-red-500 hover:text-red-600">
-                    <i data-feather="trash-2" class="w-4 h-4"></i>
-                </button>
-            </form>
-                                    </div>
-                                </td>
-                            </tr>
-
-                            <?php endforeach;?>
+                            <?php foreach ($categories as $category): ?>
+                                <tr class="border-t border-gray-100">
+                                    <td class="py-4 pr-6"><?php echo htmlspecialchars($category->getTitle()); ?></td>
+                                    <td class="py-4 pr-6"><p class="truncate w-96"><?php echo htmlspecialchars($category->getDescription()); ?></p></td>
+                                    <td class="py-4">
+                                        <div class="flex space-x-2">
+                                            <button onclick="editCategory(<?php echo $category->getId(); ?>, '<?php echo addslashes($category->getTitle()); ?>', '<?php echo addslashes($category->getDescription()); ?>')" 
+                                                    class="text-blue-500 hover:text-blue-600">
+                                                <i data-feather="edit-2" class="w-4 h-4"></i>
+                                            </button>
+                                            <form action="" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this category?');">
+                                                <input type="hidden" name="delete_id" value="<?php echo $category->getId(); ?>">
+                                                <button type="submit" class="text-red-500 hover:text-red-600">
+                                                    <i data-feather="trash-2" class="w-4 h-4"></i>
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
-    <div id="slidePanel" class="slide-panel">
+ 
+   
+</div>
+<div id="slidePanel" class="slide-panel">
         <div class="p-6">
             <div class="flex justify-between items-center mb-6">
-                <h3 class="text-xl font-semibold text-gray-800">Add New Category</h3>
+                <h3 id="slidePanelTitle" class="text-xl font-semibold text-gray-800">Add New Category</h3>
                 <button id="closePanelBtn" class="text-gray-500 hover:text-gray-700">
                     <i data-feather="x" class="w-6 h-6"></i>
                 </button>
             </div>
             
             <form id="categoryForm" class="space-y-4" method="post">
+                <input type="hidden" id="categoryId" name="id" value="">
                 <div>
                     <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                    <input type="text" id="title" name="title" 
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                           required>
+                    <input type="text" id="title" name="title" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
                 
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                    <textarea id="description" name="description" rows="4"
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            required></textarea>
+                    <textarea id="description" name="description" rows="4" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
                 </div>
 
                 <div class="pt-4">
@@ -316,44 +305,6 @@ $categories = Category::getAll();
             </form>
         </div>
     </div>
-    <div class="p-6">
-    <form method="POST" action="">
-        <?php if ($editCategory): ?>
-            <input type="hidden" name="id" value="<?php echo $editCategory->getId(); ?>">
-        <?php endif; ?>
-        
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="title">
-                Title
-            </label>
-            <input type="text" 
-                   name="title" 
-                   value="<?php echo $editCategory ? htmlspecialchars($editCategory->getTitle()) : ''; ?>"
-                   class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-        </div>
-        
-        <div class="mb-4">
-            <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
-                Description
-            </label>
-            <textarea name="description" 
-                      class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            ><?php echo $editCategory ? htmlspecialchars($editCategory->getDescription()) : ''; ?></textarea>
-        </div>
-        
-        <button type="submit" 
-                class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline">
-            <?php echo $editCategory ? 'Update' : 'Create'; ?> Category
-        </button>
-        
-        <?php if ($editCategory): ?>
-            <a href="<?php echo $_SERVER['PHP_SELF']; ?>" 
-               class="ml-2 inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800">
-                Cancel Edit
-            </a>
-        <?php endif; ?>
-    </form>
-</div>
     <script>
         // Initialize Feather Icons
         feather.replace();
@@ -364,42 +315,38 @@ $categories = Category::getAll();
         const slidePanel = document.getElementById('slidePanel');
         const overlay = document.getElementById('overlay');
         const categoryForm = document.getElementById('categoryForm');
+        const slidePanelTitle = document.getElementById('slidePanelTitle');
 
         // Open panel function
         function openPanel() {
             slidePanel.classList.add('open');
             overlay.classList.add('show');
-            document.body.style.overflow = 'hidden'; // Prevent scrolling
+            document.body.style.overflow = 'hidden';
         }
 
         // Close panel function
         function closePanel() {
             slidePanel.classList.remove('open');
             overlay.classList.remove('show');
-            document.body.style.overflow = ''; // Restore scrolling
-            categoryForm.reset(); // Reset form
+            document.body.style.overflow = '';
+            categoryForm.reset();
+            document.getElementById('categoryId').value = '';
+            slidePanelTitle.textContent = 'Add New Category';
+        }
+
+        // Edit category function
+        function editCategory(id, title, description) {
+            document.getElementById('categoryId').value = id;
+            document.getElementById('title').value = title;
+            document.getElementById('description').value = description;
+            slidePanelTitle.textContent = 'Edit Category';
+            openPanel();
         }
 
         // Event listeners
         addButton.addEventListener('click', openPanel);
         closeButton.addEventListener('click', closePanel);
         overlay.addEventListener('click', closePanel);
-
-        // Form submission
-        categoryForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            // Get form data
-            const formData = {
-                title: document.getElementById('title').value,
-                description: document.getElementById('description').value
-            };
-
-            console.log('Form submitted:', formData);
-            
-            // Close panel after submission
-            closePanel();
-        });
 
         // Close panel on escape key
         document.addEventListener('keydown', function(e) {
@@ -408,5 +355,6 @@ $categories = Category::getAll();
             }
         });
     </script>
+    <div id="overlay" class="overlay"></div>
 </body>
 </html>
