@@ -1,3 +1,45 @@
+<?php
+require_once '../classes/categorieClasse.php';
+
+// Process form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $category = new Category(
+        null, // id is null for new categories
+        $_POST['title'],
+        $_POST['description']
+    );
+
+    if ($category->save()) {
+        echo "Category saved successfully!";
+    } else {
+        echo "Error saving category.";
+    }
+}
+
+// Display all categories
+$categories = Category::getAll();
+
+
+
+
+
+
+
+
+
+
+?>
+
+
+
+
+
+
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,6 +53,36 @@
         body {
             font-family: 'Inter', sans-serif;
         }
+        .slide-panel {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100vh;
+    background: white;
+    transition: right 0.3s ease;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+}
+
+.slide-panel.open {
+    right: 0;
+}
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: none;
+    z-index: 999;
+}
+
+.overlay.show {
+    display: block;
+}
     </style>
 </head>
 <body class="bg-gray-50">
@@ -142,13 +214,13 @@
             <!-- Categories Table -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-100">
                 <div class="p-6 border-b border-gray-100">
-                    <div class="flex justify-between items-center">
-                        <h3 class="text-xl font-semibold text-gray-800">Categories List</h3>
-                        <button class="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-600 transition-colors">
-                            <i data-feather="plus" class="w-4 h-4"></i>
-                            <span>Add Category</span>
-                        </button>
-                    </div>
+                    <div class="flex justify-between items-center p-6">
+                    <h3 class="text-xl font-semibold text-gray-800">Categories List</h3>
+                    <button id="addCategoryBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center space-x-2 hover:bg-blue-600 transition-colors">
+                    <i data-feather="plus" class="w-4 h-4"></i>
+                    <span>Add Category</span>
+                    </button>
+                 </div>
                 </div>
                 <div class="p-6">
                     <table class="w-full">
@@ -161,6 +233,7 @@
                             </tr>
                         </thead>
                         <tbody class="text-gray-600">
+                            <?php foreach ($categories as $category):?>
                             <tr class="border-t border-gray-100">
                                 <td class="py-4 pr-6">
                                     <div class="flex items-center">
@@ -215,18 +288,92 @@
             </div>
         </div>
     </div>
-    <h1>Insert Data</h1>
-    <form action="insert_data.php" method="POST">
-        <label for="title">Title:</label>
-        <input type="text" name="title" id="title" required><br><br>
+    <div id="slidePanel" class="slide-panel">
+        <div class="p-6">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-gray-800">Add New Category</h3>
+                <button id="closePanelBtn" class="text-gray-500 hover:text-gray-700">
+                    <i data-feather="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <form id="categoryForm" class="space-y-4" method="post">
+                <div>
+                    <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
+                    <input type="text" id="title" name="title" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           required>
+                </div>
+                
+                <div>
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="description" name="description" rows="4"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            required></textarea>
+                </div>
 
-        <label for="description">Description:</label>
-        <textarea name="description" id="description" required></textarea><br><br>
-
-        <input type="submit" value="Submit">
-    </form>
+                <div class="pt-4">
+                    <button type="submit" class="w-full bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                        Save Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
     <script>
+        // Initialize Feather Icons
         feather.replace();
+
+        // Get DOM elements
+        const addButton = document.getElementById('addCategoryBtn');
+        const closeButton = document.getElementById('closePanelBtn');
+        const slidePanel = document.getElementById('slidePanel');
+        const overlay = document.getElementById('overlay');
+        const categoryForm = document.getElementById('categoryForm');
+
+        // Open panel function
+        function openPanel() {
+            slidePanel.classList.add('open');
+            overlay.classList.add('show');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling
+        }
+
+        // Close panel function
+        function closePanel() {
+            slidePanel.classList.remove('open');
+            overlay.classList.remove('show');
+            document.body.style.overflow = ''; // Restore scrolling
+            categoryForm.reset(); // Reset form
+        }
+
+        // Event listeners
+        addButton.addEventListener('click', openPanel);
+        closeButton.addEventListener('click', closePanel);
+        overlay.addEventListener('click', closePanel);
+
+        // Form submission
+        categoryForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Get form data
+            const formData = {
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value
+            };
+
+            // Here you can add your AJAX call to submit the data
+            console.log('Form submitted:', formData);
+            
+            // Close panel after submission
+            closePanel();
+        });
+
+        // Close panel on escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closePanel();
+            }
+        });
     </script>
 </body>
 </html>

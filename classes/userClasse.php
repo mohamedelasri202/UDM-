@@ -77,7 +77,7 @@ class User {
         $db = Database::getInstance()->getConnection();
         $stmt = $db->prepare("SELECT * FROM user");
         $stmt->execute();
-        
+       
         $users = [];
         while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $users[] = new User(
