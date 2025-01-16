@@ -395,7 +395,6 @@ $categories = Category::getAll();
                 description: document.getElementById('description').value
             };
 
-            // Here you can add your AJAX call to submit the data
             console.log('Form submitted:', formData);
             
             // Close panel after submission
