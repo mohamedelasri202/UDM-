@@ -1,34 +1,45 @@
 <?php
-// login.php
 
-// login.php
 session_start();
 require_once '../classes/userClasse.php';
 
-$message = '';
+// Process login form
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = $_POST['email'] ?? '';
+    $password = $_POST['password'] ?? '';
 
-try {
-    if ($_SERVER["REQUEST_METHOD"] === "POST") {
-        if (isset($_POST['email'], $_POST['password']) && !empty($_POST['email']) && !empty($_POST['password'])) {
-            $user = User::signin($_POST['email'], $_POST['password']);
-            
-            $_SESSION['user_id'] = $user->getId();
-            $_SESSION['user_email'] = $user->getEmail();
-            $_SESSION['user_name'] = $user->getName();
-            $_SESSION['user_last_name'] = $user->getLastName();
-            $_SESSION['user_role'] = $user->getRoleId();
-            
-            header("Location: ../index.php");
-            exit();
-        } else {
-            $message = "Email and password are required";
+    try {
+        $user = User::signin($email, $password);
+        
+        // Store user data in session
+        $_SESSION['user_id'] = $user->getId();
+        $_SESSION['name'] = $user->getName();
+        $_SESSION['role_id'] = $user->getRoleId();
+        
+        // Redirect based on role
+        switch ($user->getRoleId()) {
+            case User::ROLE_STUDENT:
+                header('Location:../front.php');
+                break;
+            case User::ROLE_TEACHER:
+                header('Location: ../teacher/course.php');
+                break;
+            default:
+                // Assuming admin role_id is 3
+                if ($user->getRoleId() == 1) {
+                    header('Location:../aside/users.php');
+                } else {
+                    // Fallback for any other roles
+                    header('Location: index.php');
+                }
+                break;
         }
+        exit;
+    } catch (Exception $e) {
+        $error = $e->getMessage();
     }
-} catch(Exception $e) {
-    $message = "Login Error: " . $e->getMessage();
 }
 ?>
-
 
 <!DOCTYPE html>
 <html lang="en">

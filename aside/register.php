@@ -125,8 +125,9 @@ try {
         <div>
             <label for="role_id">Role:</label>
             <select id="role_id" name="role_id" required>
-                <option value="2">Student</option>
-                <option value="1">Teacher</option>
+                <option value="3">Student</option>
+                <option value="2">Teacher</option>
+              
             </select>
         </div>
         

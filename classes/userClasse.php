@@ -11,8 +11,8 @@ class User {
     private $roleId;
     private $status;
 
-    const ROLE_TEACHER = 1;
-    const ROLE_STUDENT = 2;
+    const ROLE_TEACHER = 2;
+    const ROLE_STUDENT = 3;
     const STATUS_WAITING = 'waiting';
     const STATUS_ACTIVATED = 'activated';
 

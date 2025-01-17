@@ -10,9 +10,10 @@ CREATE TABLE user (
     last_name varchar (50),
     email varchar (50),
     password varchar (255) ,
-    status enum 
+    status enum ("actevated","waiting","suspended"),
     role_id int ,
   FOREIGN KEY (role_id) REFERENCES role(id) 
+
 );
  CREATE TABLE categories (
     id int primary key AUTO_INCREMENT,
