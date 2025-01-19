@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location:../front.php');
                 break;
             case User::ROLE_TEACHER:
-                header('Location: ../teacher/course.php');
+                header('Location: ../teacher/coursevideo.php');
                 break;
             default:
                 // Assuming admin role_id is 3

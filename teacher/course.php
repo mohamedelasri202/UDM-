@@ -15,57 +15,114 @@ $message = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        // Create new text course object
-        $textCourse = new TextCourse();
-        
-        // Validate category
+        // Validate course type
+        if (!isset($_POST['coursetype'])) {
+            throw new Exception("Course type is required");
+        }
+
+        // Common validation for all courses
         if (!isset($_POST['id_categorie'])) {
             throw new Exception("Category is required");
         }
-        
-        // Set basic course properties
-        $textCourse->setTitle($_POST['title'] ?? '');
-        $textCourse->setDescription($_POST['description'] ?? '');
-        $textCourse->setPrice($_POST['price'] ?? 0);
-        $textCourse->setIdUser($_SESSION['user_id']);
-        $textCourse->setIdCategorie($_POST['id_categorie']);
-        
-        // Handle image upload
+
+        // Handle image upload for both course types
+        $imagePath = '';
         if (isset($_FILES['coursimage']) && $_FILES['coursimage']['error'] === 0) {
             $uploadDir = 'uploads/images/';
             if (!file_exists($uploadDir)) {
                 mkdir($uploadDir, 0777, true);
             }
             
-            $imageName = uniqid() . '_' . basename($_FILES['coursimage']['name']);
+            // Validate image type
+            $allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            if (!in_array($_FILES['coursimage']['type'], $allowedImageTypes)) {
+                throw new Exception("Invalid image file type. Please upload JPEG, PNG, or GIF image.");
+            }
+            
+            $imageName = time() . '_' . basename($_FILES['coursimage']['name']);
             $imagePath = $uploadDir . $imageName;
             
-            if (move_uploaded_file($_FILES['coursimage']['tmp_name'], $imagePath)) {
-                $textCourse->setCoursImage($imagePath);
+            if (!move_uploaded_file($_FILES['coursimage']['tmp_name'], $imagePath)) {
+                throw new Exception("Error uploading image file");
+            }
+        } else {
+            throw new Exception("Course image is required");
+        }
+
+        if ($_POST['coursetype'] === 'text') {
+            // Handle text course
+            $textCourse = new TextCourse();
+            $textCourse->setTitle($_POST['title']);
+            $textCourse->setDescription($_POST['description']);
+            $textCourse->setPrice($_POST['price']);
+            $textCourse->setIdUser($_SESSION['user_id']);
+            $textCourse->setIdCategorie($_POST['id_categorie']);
+            $textCourse->setCoursImage($imagePath);
+            
+            if (isset($_POST['documentcourse']) && !empty(trim($_POST['documentcourse']))) {
+                $textCourse->setDocumentCourse($_POST['documentcourse']);
+            } else {
+                throw new Exception("Course content is required for text courses");
+            }
+            
+            if ($textCourse->addCourse($db)) {
+                $_SESSION['success_message'] = "Text course added successfully!";
+                header('Location: courses.php');
+                exit();
+            }
+        } 
+        else if ($_POST['coursetype'] === 'video') {
+            // Handle video course
+            if (!isset($_FILES['videocourse']) || $_FILES['videocourse']['error'] !== 0) {
+                throw new Exception("Video file is required for video courses");
+            }
+
+            // Validate video type
+            $allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+            if (!in_array($_FILES['videocourse']['type'], $allowedVideoTypes)) {
+                throw new Exception("Invalid video file type. Please upload MP4, WebM, or Ogg video.");
+            }
+
+            // Handle video upload
+            $uploadDir = 'uploads/videos/';
+            if (!file_exists($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+            
+            $videoName = time() . '_' . basename($_FILES['videocourse']['name']);
+            $videoPath = $uploadDir . $videoName;
+            
+            if (!move_uploaded_file($_FILES['videocourse']['tmp_name'], $videoPath)) {
+                throw new Exception("Error uploading video file");
+            }
+
+            // Create video course
+            $videoCourse = new VideoCourse(
+                null,
+                $_POST['title'],
+                $_POST['description'],
+                $_POST['price'],
+                $_SESSION['user_id'],
+                $_POST['id_categorie'],
+                $imagePath,
+                'video',
+                $videoPath
+            );
+
+            if ($videoCourse->addCourse($db)) {
+                $_SESSION['success_message'] = "Video course added successfully!";
+                header('Location: courses.php');
+                exit();
             }
         }
-        
-        // Handle course content (text)
-        if (isset($_POST['documentcourse']) && !empty(trim($_POST['documentcourse']))) {
-            $textCourse->setDocumentCourse($_POST['documentcourse']);
-        } else {
-            throw new Exception("Course content is required");
-        }
-        
-       
-        if ($textCourse->addCourse($db)) {
-            $_SESSION['success_message'] = "Course added successfully!";
-            header('Location: courses.php'); 
-            exit();
-        } else {
-            throw new Exception("Error adding course to database");
+        else {
+            throw new Exception("Invalid course type");
         }
     } catch (Exception $e) {
         $message = "Error: " . $e->getMessage();
-        error_log("Error in course creation: " . $e->getMessage());
+        $messageType = "error";
     }
 }
-
 // Fetch categories for dropdown
 try {
     $stmt = $db->prepare("SELECT id, title FROM categories");
@@ -83,176 +140,8 @@ try {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Course Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        :root {
-            --primary: #4361ee;
-            --secondary: #3f37c9;
-            --bg-light: #f8f9fa;
-            --text-dark: #2b2d42;
-        }
-
-        body {
-            background-color: var(--bg-light);
-            color: var(--text-dark);
-        }
-
-        .dashboard {
-            display: grid;
-            grid-template-columns: 250px 1fr;
-            min-height: 100vh;
-        }
-
-        .sidebar {
-            background-color: white;
-            padding: 2rem;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
-        }
-
-        .logo {
-            font-size: 1.5rem;
-            font-weight: bold;
-            color: var(--primary);
-            margin-bottom: 2rem;
-        }
-
-        .nav-item {
-            padding: 0.75rem 1rem;
-            margin: 0.5rem 0;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .nav-item:hover {
-            background-color: var(--bg-light);
-            color: var(--primary);
-        }
-
-        .nav-item.active {
-            background-color: var(--primary);
-            color: white;
-        }
-
-        .main-content {
-            padding: 2rem;
-        }
-
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-
-        .page-title {
-            font-size: 1.75rem;
-            font-weight: bold;
-        }
-
-        .add-course-btn {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: background-color 0.3s ease;
-        }
-
-        .add-course-btn:hover {
-            background-color: var(--secondary);
-        }
-
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background-color: white;
-            width: 90%;
-            max-width: 800px;
-            margin: 2rem auto;
-            padding: 2rem;
-            border-radius: 12px;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .close-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            color: #666;
-        }
-
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 1rem;
-        }
-
-        .form-group textarea {
-            min-height: 150px;
-            resize: vertical;
-        }
-
-        button[type="submit"] {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 6px;
-            cursor: pointer;
-            width: 100%;
-            font-size: 1rem;
-        }
-
-        button[type="submit"]:hover {
-            background-color: var(--secondary);
-        }
-    </style>
+    <link rel="stylesheet" href="../style/style.css">
+   
 </head>
 <body>
     <div class="dashboard">
@@ -294,50 +183,95 @@ try {
                         <button class="close-btn" onclick="closeModal()">&times;</button>
                     </div>
                     
-                    <form method="POST" enctype="multipart/form-data">
-                        <div class="form-group">
-                            <label for="title">Title:</label>
-                            <input type="text" id="title" name="title" required>
-                        </div>
+                    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+    <div class="form-group">
+        <label for="title" class="block text-sm font-medium text-gray-700">Course Title</label>
+        <input type="text" name="title" id="title" required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+    </div>
 
-                        <div class="form-group">
-                            <label for="description">Description:</label>
-                            <textarea id="description" name="description" required></textarea>
-                        </div>
+    <div class="form-group">
+        <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+        <textarea name="description" id="description" rows="4" required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+    </div>
 
-                        <div class="form-group">
-                            <label for="price">Price:</label>
-                            <input type="number" id="price" name="price" step="0.01" required>
-                        </div>
+    <div class="form-group">
+        <label for="price" class="block text-sm font-medium text-gray-700">Price</label>
+        <input type="number" name="price" id="price" step="0.01" required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+    </div>
 
-                        <div class="form-group">
-                            <label for="id_categorie">Category:</label>
-                            <select id="id_categorie" name="id_categorie" required>
-                                <option value="">Select a category</option>
-                                <?php foreach ($categories as $category): ?>
-                                    <option value="<?php echo htmlspecialchars($category['id']); ?>">
-                                        <?php echo htmlspecialchars($category['title']); ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+    <div class="form-group">
+        <label for="id_categorie" class="block text-sm font-medium text-gray-700">Category</label>
+        <select name="id_categorie" id="id_categorie" required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="">Select a category</option>
+            <?php foreach ($categories as $category): ?>
+                <option value="<?php echo htmlspecialchars($category['id']); ?>">
+                    <?php echo htmlspecialchars($category['title']); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
 
-                        <div class="form-group">
-                            <label for="coursimage">Course Image:</label>
-                            <input type="file" id="coursimage" name="coursimage" accept="image/*" required>
-                        </div>
+    <!-- Course Type Selection -->
+    <div class="form-group">
+        <label for="coursetype" class="block text-sm font-medium text-gray-700">Course Type</label>
+        <select id="coursetype" name="coursetype" onchange="toggleCourseInputs()" required
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+            <option value="">Select course type</option>
+            <option value="text">Text Course</option>
+            <option value="video">Video Course</option>
+        </select>
+    </div>
 
-                        <div class="form-group">
-                            <label for="documentcourse">Course Content:</label>
-                            <textarea id="documentcourse" name="documentcourse" required></textarea>
-                        </div>
+    <!-- Text Course Content -->
+    <div id="textCourseContent" class="form-group" style="display: none;">
+        <label for="documentcourse" class="block text-sm font-medium text-gray-700">Course Content (Text)</label>
+        <textarea id="documentcourse" name="documentcourse" rows="4"
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+    </div>
 
-                        <button type="submit">Add Course</button>
-                    </form>
+    <!-- Video Course Content -->
+    <div id="videoCourseContent" class="form-group" style="display: none;">
+        <label for="videocourse" class="block text-sm font-medium text-gray-700">Course Video</label>
+        <input type="file" name="videocourse" id="videocourse" accept="video/*"
+            class="mt-1 block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-indigo-50 file:text-indigo-700
+            hover:file:bg-indigo-100">
+        <p class="mt-1 text-sm text-gray-500">Upload your course video file (MP4, WebM, etc.)</p>
+    </div>
+
+    <!-- Course Thumbnail -->
+    <div class="form-group">
+        <label for="coursimage" class="block text-sm font-medium text-gray-700">Course Thumbnail</label>
+        <input type="file" name="coursimage" id="coursimage" accept="image/*" required
+            class="mt-1 block w-full text-sm text-gray-500
+            file:mr-4 file:py-2 file:px-4
+            file:rounded-md file:border-0
+            file:text-sm file:font-semibold
+            file:bg-indigo-50 file:text-indigo-700
+            hover:file:bg-indigo-100">
+    </div>
+
+    <!-- Submit Button -->
+    <div class="flex justify-end">
+        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            Add Course
+        </button>
+    </div>
+</form>
+
                 </div>
             </div>
         </div>
     </div>
+
+   
 
     <script>
         function openModal() {
@@ -357,6 +291,22 @@ try {
                 closeModal();
             }
         }
+        function toggleCourseInputs() {
+        const courseType = document.getElementById('coursetype').value;
+        const textContent = document.getElementById('textCourseContent');
+        const videoContent = document.getElementById('videoCourseContent');
+
+        // Hide both by default
+        textContent.style.display = 'none';
+        videoContent.style.display = 'none';
+
+        // Show the appropriate input based on the selected type
+        if (courseType === 'text') {
+            textContent.style.display = 'block';
+        } else if (courseType === 'video') {
+            videoContent.style.display = 'block';
+        }
+    }
     </script>
 </body>
 </html>
