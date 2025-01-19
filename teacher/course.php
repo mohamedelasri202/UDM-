@@ -123,6 +123,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $messageType = "error";
     }
 }
+try {
+   
+    
+    // Initialize course objects
+    $textCourse = new TextCourse();
+    $videoCourse = new VideoCourse();
+
+    // Get all courses
+    $textCourses = $textCourse->afficheCourse($db);
+    $videoCourses = $videoCourse->afficheCourse($db);
+
+    // Combine and sort all courses
+    $allCourses = array_merge($textCourses, $videoCourses);
+    usort($allCourses, function($a, $b) {
+        return strcmp($b['course']->getTitle(), $a['course']->getTitle());
+    });
+} catch (PDOException $e) {
+    error_log("Error fetching courses: " . $e->getMessage());
+    $error = "An error occurred while loading courses.";
+}
+
 // Fetch categories for dropdown
 try {
     $stmt = $db->prepare("SELECT id, title FROM categories");
@@ -175,6 +196,144 @@ try {
                     <i class="fas fa-plus"></i> Add New Course
                 </button>
             </div>
+
+
+
+
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <?php if (isset($error)): ?>
+        <div class="col-span-3 bg-red-50 text-red-600 p-4 rounded-lg">
+            <?php echo htmlspecialchars($error); ?>
+        </div>
+    <?php endif; ?>
+    
+    <?php foreach ($allCourses as $courseData): 
+        $course = $courseData['course'];
+        $badgeColor = $course->getCoursType() === 'video' ? 'blue' : 'purple';
+    ?>
+    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+        <div class="relative">
+            <?php if ($course->getCoursImage()): ?>
+                <img src="<?php echo htmlspecialchars($course->getCoursImage()); ?>" 
+                     alt="<?php echo htmlspecialchars($course->getTitle()); ?>" 
+                     class="w-full h-48 object-cover">
+            <?php else: ?>
+                <div class="w-full h-48 bg-gray-100 flex items-center justify-center">
+                    <i data-feather="<?php echo $course->getCoursType() === 'video' ? 'video' : 'file-text'; ?>" 
+                       class="w-8 h-8 text-gray-400"></i>
+                </div>
+            <?php endif; ?>
+            
+            <!-- Course Type Badge -->
+            <span class="absolute top-4 right-4 bg-<?php echo $badgeColor; ?>-500 text-white px-3 py-1 rounded-full text-xs font-medium">
+                <?php echo ucfirst($course->getCoursType()); ?> Course
+            </span>
+
+            <!-- Category Badge -->
+            <?php if (isset($courseData['category_name'])): ?>
+            <span class="absolute top-4 left-4 bg-white/90 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">
+                <?php echo htmlspecialchars($courseData['category_name']); ?>
+            </span>
+            <?php endif; ?>
+        </div>
+
+        <div class="p-6">
+            <h3 class="font-semibold text-lg text-gray-800 mb-2">
+                <?php echo htmlspecialchars($course->getTitle()); ?>
+            </h3>
+            
+            <p class="text-gray-600 text-sm mb-4 line-clamp-2">
+                <?php echo htmlspecialchars($course->getDescription()); ?>
+            </p>
+
+            <!-- Course Details -->
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <i data-feather="dollar-sign" class="w-4 h-4 text-gray-400"></i>
+                        <span class="text-sm font-medium text-gray-900">
+                            <?php echo number_format($course->getPrice(), 2); ?>
+                        </span>
+                    </div>
+                    <?php if ($course instanceof TextCourse && $course->getDocumentCourse()): ?>
+                    <div class="flex items-center space-x-2">
+                        <i data-feather="file-text" class="w-4 h-4 text-gray-400"></i>
+                        <span class="text-sm text-gray-600">Document</span>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($course instanceof VideoCourse && $course->getVideoCourse()): ?>
+                    <div class="flex items-center space-x-2">
+                        <i data-feather="video" class="w-4 h-4 text-gray-400"></i>
+                        <span class="text-sm text-gray-600">Video</span>
+                    </div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- Author Information -->
+                <div class="flex items-center space-x-2">
+                    <div class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
+                        <i data-feather="user" class="w-3 h-3 text-gray-500"></i>
+                    </div>
+                    <span class="text-sm text-gray-600">
+                        <?php echo htmlspecialchars($courseData['author'] ?? 'Unknown Author'); ?>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex space-x-2">
+                <a href="view_course.php?id=<?php echo $course->getId(); ?>" 
+                   class="flex-1 bg-gray-50 text-gray-700 py-2 rounded-lg hover:bg-gray-100 transition-colors text-center">
+                    View Details
+                </a>
+                <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $course->getIdUser()): ?>
+                <div class="flex space-x-2">
+                    <a href="edit_course.php?id=<?php echo $course->getId(); ?>" 
+                       class="px-4 bg-blue-50 text-blue-600 py-2 rounded-lg hover:bg-blue-100 transition-colors">
+                        <i data-feather="edit-2" class="w-4 h-4"></i>
+                    </a>
+                    <button onclick="deleteCourse(<?php echo $course->getId(); ?>)"
+                            class="px-4 bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-100 transition-colors">
+                        <i data-feather="trash-2" class="w-4 h-4"></i>
+                    </button>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <?php endforeach; ?>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             
             <div id="courseModal" class="modal">
                 <div class="modal-content">
@@ -183,7 +342,7 @@ try {
                         <button class="close-btn" onclick="closeModal()">&times;</button>
                     </div>
                     
-                    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+ <form method="POST" enctype="multipart/form-data" class="space-y-6">
     <div class="form-group">
         <label for="title" class="block text-sm font-medium text-gray-700">Course Title</label>
         <input type="text" name="title" id="title" required
@@ -307,6 +466,29 @@ try {
             videoContent.style.display = 'block';
         }
     }
+    feather.replace();
+      
+
+      function deleteCourse(courseId) {
+          if (confirm('Are you sure you want to delete this course?')) {
+              fetch(`delete_course.php?id=${courseId}`, {
+                  method: 'DELETE',
+                  credentials: 'same-origin'
+              })
+              .then(response => response.json())
+              .then(data => {
+                  if (data.success) {
+                      location.reload();
+                  } else {
+                      alert('Error deleting course: ' + data.message);
+                  }
+              })
+              .catch(error => {
+                  console.error('Error:', error);
+                  alert('Error deleting course. Please try again.');
+              });
+          }
+      }
     </script>
 </body>
 </html>

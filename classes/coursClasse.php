@@ -173,9 +173,9 @@ class TextCourse extends Course {
 
     public function afficheCourse($db) {
         try {
-            $query = "SELECT c.*, u.username as author, cat.name as category_name 
+            $query = "SELECT c.*, u.name as author, cat.title as category_name 
                      FROM courses c 
-                     LEFT JOIN users u ON c.id_user = u.id 
+                     LEFT JOIN user u ON c.id_user = u.id 
                      LEFT JOIN categories cat ON c.id_categorie = cat.id 
                      WHERE c.coursetype = 'text'";
             
