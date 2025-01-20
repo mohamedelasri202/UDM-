@@ -1,102 +1,225 @@
-<form method="POST" enctype="multipart/form-data" class="space-y-6">
+<?php 
+require_once 'classes/connection.php';
+class Tags {
+    private $id;
+    private $title;
+
+    public function __construct($id, $title) {
+        $this->id = $id;
+        $this->title = $title;
+    }
+
+    public function getID() {
+        return $this->id;
+    }
+
+    public function getTitle() {
+        return $this->title;
+    }
+
+    public function addTags() {
+        $db = Database::getInstance()->getConnection();
+        $sql = $db->prepare("INSERT INTO tags (title) VALUES (:title)");
+        $sql->bindParam(':title', $this->title);
+        
+        if($sql->execute()) {
+            $this->id = $db->lastInsertId();
+            return new Tags($this->id, $this->title);
+        }
+        return null;
+    }
+
+    public static function afficheTags() {
+        $db = Database::getInstance()->getConnection();
+        $stm = $db->prepare("SELECT * FROM tags");
+        $stm->execute();
+        
+        $tags = [];
+        $results = $stm->fetchAll(PDO::FETCH_ASSOC);
+        
+        foreach($results as $row) {
+            $tags[] = new Tags($row['id'], $row['title']);
+        }
+        
+        return $tags;
+    }
+
+    public function editeTags() {
+        $db = Database::getInstance()->getConnection();
+        $stm = $db->prepare("UPDATE tags SET title = :title WHERE id = :id");
+        $stm->bindParam(':title', $this->title);
+        $stm->bindParam(':id', $this->id);
+        
+        if($stm->execute()) {
+            return new Tags($this->id, $this->title);
+        }
+        return null;
+    }
+
+    public function deleteTags() {
+        $db = Database::getInstance()->getConnection();
+        $stm = $db->prepare("DELETE FROM tags WHERE id = :id");
+        $stm->bindParam(':id', $this->id);
+        
+        return $stm->execute();
+    }
+
+    public static function getTagById($id) {
+        $db = Database::getInstance()->getConnection();
+        $stm = $db->prepare("SELECT * FROM tags WHERE id = :id");
+        $stm->bindParam(':id', $id);
+        $stm->execute();
+        
+        if($row = $stm->fetch(PDO::FETCH_ASSOC)) {
+            return new Tags($row['id'], $row['title']);
+        }
+        return null;
+    }
+}
+
+
+
+
+
+
+
+// In your form processing file (e.g., process_form.php)
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Get the comma-separated tags from the form
+    $tagTitles = $_POST['tag_title']; 
+
+    if (!empty($tagTitles)) {
+        // Split the tags into an array
+        $tagsArray = array_map('trim', explode(',', $tagTitles));
+
+        foreach ($tagsArray as $tagTitle) {
+            if (!empty($tagTitle)) {
+                // Create a new Tags object for each tag
+                $tag = new Tags(null, $tagTitle);
+                $newTag = $tag->addTags();
+
+                if ($newTag) {
+                    echo "Tag added successfully with ID: " . $newTag->getID() . "<br>";
+                } else {
+                    echo "Error adding tag: $tagTitle<br>";
+                }
+            }
+        }
+    } else {
+        echo "No tags provided.";
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+?>
+
+
+<style>
+.tag-input-container {
+    margin-top: 5px;
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.tag {
+    background-color: #e9ecef;
+    border-radius: 3px;
+    padding: 5px 10px;
+    display: inline-flex;
+    align-items: center;
+}
+
+.tag span {
+    margin-right: 5px;
+}
+
+.tag button {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.tag button:hover {
+    color: #dc3545;
+}
+</style>
+
+<form method="POST">
     <div class="form-group">
-        <label for="title" class="block text-sm font-medium text-gray-700">Course Title</label>
-        <input type="text" name="title" id="title" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+        <label for="tagInput">Course Tags</label>
+        <div class="tag-input-container">
+            <input type="text" id="tagInput" placeholder="Enter tags and press Enter">
+            <div id="tagContainer" class="tags-container"></div>
+            <!-- Hidden input to store tags for form submission -->
+            <input type="hidden" name="tag_title" id="tag_title">
+        </div>
     </div>
-
-    <div class="form-group">
-        <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
-        <textarea name="description" id="description" rows="4" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
-    </div>
-
-    <div class="form-group">
-        <label for="price" class="block text-sm font-medium text-gray-700">Price</label>
-        <input type="number" name="price" id="price" step="0.01" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-    </div>
-
-    <div class="form-group">
-        <label for="id_categorie" class="block text-sm font-medium text-gray-700">Category</label>
-        <select name="id_categorie" id="id_categorie" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-            <option value="">Select a category</option>
-            <?php foreach ($categories as $category): ?>
-                <option value="<?php echo htmlspecialchars($category['id']); ?>">
-                    <?php echo htmlspecialchars($category['title']); ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-    </div>
-
-    <!-- Course Type Selection -->
-    <div class="form-group">
-        <label for="coursetype" class="block text-sm font-medium text-gray-700">Course Type</label>
-        <select id="coursetype" name="coursetype" onchange="toggleCourseInputs()" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
-            <option value="">Select course type</option>
-            <option value="text">Text Course</option>
-            <option value="video">Video Course</option>
-        </select>
-    </div>
-
-    <!-- Text Course Content -->
-    <div id="textCourseContent" class="form-group" style="display: none;">
-        <label for="documentcourse" class="block text-sm font-medium text-gray-700">Course Content (Text)</label>
-        <textarea id="documentcourse" name="documentcourse" rows="4"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
-    </div>
-
-    <!-- Video Course Content -->
-    <div id="videoCourseContent" class="form-group" style="display: none;">
-        <label for="videocourse" class="block text-sm font-medium text-gray-700">Course Video</label>
-        <input type="file" name="videocourse" id="videocourse" accept="video/*"
-            class="mt-1 block w-full text-sm text-gray-500
-            file:mr-4 file:py-2 file:px-4
-            file:rounded-md file:border-0
-            file:text-sm file:font-semibold
-            file:bg-indigo-50 file:text-indigo-700
-            hover:file:bg-indigo-100">
-        <p class="mt-1 text-sm text-gray-500">Upload your course video file (MP4, WebM, etc.)</p>
-    </div>
-
-    <!-- Course Thumbnail -->
-    <div class="form-group">
-        <label for="coursimage" class="block text-sm font-medium text-gray-700">Course Thumbnail</label>
-        <input type="file" name="coursimage" id="coursimage" accept="image/*" required
-            class="mt-1 block w-full text-sm text-gray-500
-            file:mr-4 file:py-2 file:px-4
-            file:rounded-md file:border-0
-            file:text-sm file:font-semibold
-            file:bg-indigo-50 file:text-indigo-700
-            hover:file:bg-indigo-100">
-    </div>
-
-    <!-- Submit Button -->
-    <div class="flex justify-end">
-        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-            Add Course
-        </button>
-    </div>
+    <button type="submit">Add Tag</button>
 </form>
 
-<!-- JavaScript for Dynamic Input -->
 <script>
-    function toggleCourseInputs() {
-        const courseType = document.getElementById('coursetype').value;
-        const textContent = document.getElementById('textCourseContent');
-        const videoContent = document.getElementById('videoCourseContent');
+document.addEventListener('DOMContentLoaded', function() {
+    const tagInput = document.getElementById('tagInput');
+    const tagContainer = document.getElementById('tagContainer');
+    const hiddenTagInput = document.getElementById('tag_title');
+    let tags = [];
 
-        // Hide both by default
-        textContent.style.display = 'none';
-        videoContent.style.display = 'none';
+    tagInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const tag = this.value.trim();
 
-        // Show the appropriate input based on the selected type
-        if (courseType === 'text') {
-            textContent.style.display = 'block';
-        } else if (courseType === 'video') {
-            videoContent.style.display = 'block';
+            if (tag && !tags.includes(tag)) {
+                tags.push(tag);
+                updateTags();
+                this.value = '';
+            }
         }
+    });
+
+    function updateTags() {
+        // Update the hidden input with a comma-separated string of tags
+        hiddenTagInput.value = tags.join(',');
+
+        // Update the visual representation of tags
+        tagContainer.innerHTML = tags.map(tag => `
+            <div class="tag">
+                <span>${escapeHtml(tag)}</span>
+                <button type="button" onclick="removeTag('${escapeHtml(tag)}')">&times;</button>
+            </div>
+        `).join('');
     }
+
+    // Remove a tag from the list
+    window.removeTag = function(tagToRemove) {
+        tags = tags.filter(tag => tag !== tagToRemove);
+        updateTags();
+    }
+
+    // Escape HTML to prevent potential XSS
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+});
+
+
 </script>

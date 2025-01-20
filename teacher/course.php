@@ -9,17 +9,22 @@ if(!isset($_SESSION['user_id'])) {
 require_once '../classes/connection.php';
 require_once '../classes/coursClasse.php';
 require_once '../classes/categorieClasse.php';
+require_once '../classes/tags.php';
+require_once '../classes/tagscours.php';
 
 $db = Database::getInstance()->getConnection();
 $message = '';
+$messageType = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $db->beginTransaction();
+
     try {
+        error_log("Processing course submission: " . print_r($_POST, true));
         // Validate course type
-        if (!isset($_POST['coursetype'])) {
+        if (!isset($_POST['coursetype']) || empty($_POST['coursetype'])) {
             throw new Exception("Course type is required");
         }
-
         // Common validation for all courses
         if (!isset($_POST['id_categorie'])) {
             throw new Exception("Category is required");
@@ -49,8 +54,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             throw new Exception("Course image is required");
         }
 
+        $courseId = null;
+
+        // Handle Text Course
         if ($_POST['coursetype'] === 'text') {
-            // Handle text course
             $textCourse = new TextCourse();
             $textCourse->setTitle($_POST['title']);
             $textCourse->setDescription($_POST['description']);
@@ -58,21 +65,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $textCourse->setIdUser($_SESSION['user_id']);
             $textCourse->setIdCategorie($_POST['id_categorie']);
             $textCourse->setCoursImage($imagePath);
-            
-            if (isset($_POST['documentcourse']) && !empty(trim($_POST['documentcourse']))) {
-                $textCourse->setDocumentCourse($_POST['documentcourse']);
-            } else {
-                throw new Exception("Course content is required for text courses");
-            }
+            $textCourse->setDocumentCourse($_POST['documentcourse']);
             
             if ($textCourse->addCourse($db)) {
-                $_SESSION['success_message'] = "Text course added successfully!";
-                header('Location: courses.php');
-                exit();
+                $courseId = $db->lastInsertId();
+            } else {
+                throw new Exception("Failed to add text course");
             }
         } 
+        // Handle Video Course
         else if ($_POST['coursetype'] === 'video') {
-            // Handle video course
             if (!isset($_FILES['videocourse']) || $_FILES['videocourse']['error'] !== 0) {
                 throw new Exception("Video file is required for video courses");
             }
@@ -96,7 +98,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 throw new Exception("Error uploading video file");
             }
 
-            // Create video course
             $videoCourse = new VideoCourse(
                 null,
                 $_POST['title'],
@@ -108,42 +109,70 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'video',
                 $videoPath
             );
-
+            
             if ($videoCourse->addCourse($db)) {
-                $_SESSION['success_message'] = "Video course added successfully!";
-                header('Location: courses.php');
-                exit();
+                $courseId = $db->lastInsertId();
+            } else {
+                throw new Exception("Failed to add video course");
             }
         }
-        else {
-            throw new Exception("Invalid course type");
-        }
-    } catch (Exception $e) {
-        $message = "Error: " . $e->getMessage();
-        $messageType = "error";
-    }
-}
-try {
-   
+
+        // Handle tags if course was created successfully
+              // When creating course tag relationships, add error logging
+              if ($courseId && isset($_POST['tag_titles']) && !empty($_POST['tag_titles'])) {
+                $tagTitles = array_map('trim', explode(',', $_POST['tag_titles']));
+                
+                foreach ($tagTitles as $tagTitle) {
+                    if (empty($tagTitle)) continue;
+                    
+                    try {
+                        // Create or get existing tag
+                        $tag = new Tags(null, $tagTitle);
+                        $existingTag = Tags::getTagByTitle($db, $tagTitle);
+                        
+                        $tagId = null;
+                        if ($existingTag) {
+                            $tagId = $existingTag->getID();
+                        } else {
+                            $newTag = $tag->addTags($db);
+                            if ($newTag) {
+                                $tagId = $newTag->getID();
+                            }
+                        }
+                        
+                        if ($tagId) {
+                            $courseTag = new CourseTag($courseId, $tagId);
+                            if (!$courseTag->addCourseTag($db)) {
+                                throw new Exception("Failed to associate tag: $tagTitle with course");
+                            }
+                        } else {
+                            throw new Exception("Failed to create or retrieve tag: $tagTitle");
+                        }
+                    } catch (Exception $e) {
+                        error_log("Error processing tag '$tagTitle': " . $e->getMessage());
+                        throw $e;
+                    }
+                }
+            }
     
-    // Initialize course objects
-    $textCourse = new TextCourse();
-    $videoCourse = new VideoCourse();
+            $db->commit();
+            $_SESSION['success_message'] = "Course and tags added successfully!";
+            header('Location: courses.php');
+            exit();
+    
+        } catch (Exception $e) {
+            $db->rollBack();
+            error_log("Error in course creation: " . $e->getMessage());
+            $message = "Error: " . $e->getMessage();
+            $messageType = "error";
+        }
+    }
+    
+    
 
-    // Get all courses
-    $textCourses = $textCourse->afficheCourse($db);
-    $videoCourses = $videoCourse->afficheCourse($db);
-
-    // Combine and sort all courses
-    $allCourses = array_merge($textCourses, $videoCourses);
-    usort($allCourses, function($a, $b) {
-        return strcmp($b['course']->getTitle(), $a['course']->getTitle());
-    });
-} catch (PDOException $e) {
-    error_log("Error fetching courses: " . $e->getMessage());
-    $error = "An error occurred while loading courses.";
-}
-
+        // If we got here, everything succeeded
+    
+  
 // Fetch categories for dropdown
 try {
     $stmt = $db->prepare("SELECT id, title FROM categories");
@@ -153,7 +182,23 @@ try {
     $categories = [];
     $message = "Error loading categories: " . $e->getMessage();
 }
-?>
+
+// Fetch existing courses
+try {
+    $textCourse = new TextCourse();
+    $videoCourse = new VideoCourse();
+
+    $textCourses = $textCourse->afficheCourse($db);
+    $videoCourses = $videoCourse->afficheCourse($db);
+
+    $allCourses = array_merge($textCourses, $videoCourses);
+    usort($allCourses, function($a, $b) {
+        return strcmp($b['course']->getTitle(), $a['course']->getTitle());
+    });
+} catch (PDOException $e) {
+    error_log("Error fetching courses: " . $e->getMessage());
+    $error = "An error occurred while loading courses.";
+}?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -162,7 +207,403 @@ try {
     <title>Course Dashboard</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
     <link rel="stylesheet" href="../style/style.css">
-   
+    <style>
+        .form-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Tag Input Styling */
+.tag-input-wrapper {
+    margin-bottom: 1rem;
+}
+
+.tag-input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.5rem;
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    background-color: #EEF2FF;
+    border: 1px solid #E0E7FF;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    color: #4F46E5;
+    transition: all 0.2s ease;
+}
+
+.tag:hover {
+    background-color: #E0E7FF;
+}
+
+.tag-remove {
+    margin-left: 0.5rem;
+    cursor: pointer;
+    color: #6366F1;
+    border: none;
+    background: none;
+    font-size: 1.25rem;
+    padding: 0 0.25rem;
+    line-height: 1;
+}
+
+.tag-remove:hover {
+    color: #4F46E5;
+}
+
+/* File Input Styling */
+.file-input-wrapper {
+    position: relative;
+}
+
+.file-input-label {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    background-color: #F3F4F6;
+    border: 1px solid #D1D5DB;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.file-input-label:hover {
+    background-color: #E5E7EB;
+}
+
+.file-input {
+    opacity: 0;
+    width: 0.1px;
+    height: 0.1px;
+    position: absolute;
+}
+
+/* Submit Button Styling */
+.submit-btn {
+    background-color: #4F46E5;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.submit-btn:hover {
+    background-color: #4338CA;
+}
+
+.help-text {
+    font-size: 0.875rem;
+    color: #6B7280;
+    margin-top: 0.25rem;
+}
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 700px;
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .close-btn {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            border: none;
+            background: none;
+            padding: 0;
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"],
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group input[type="file"] {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background-color: #f9f9f9;
+        }
+
+        .submit-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+
+        /* Message styles */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1.5rem;
+            padding: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .course-card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .course-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .course-image {
+            position: relative;
+            height: 200px;
+            overflow: hidden;
+        }
+
+        .course-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .course-content {
+            padding: 1.5rem;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .course-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .course-content p {
+            color: #666;
+            font-size: 0.875rem;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            flex: 1;
+        }
+
+        .course-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+            margin-top: auto;
+        }
+
+        .course-meta .price {
+            font-weight: 600;
+            color: #2563eb;
+        }
+
+        .course-meta .type {
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            background-color: #e5e7eb;
+            color: #4b5563;
+        }
+
+        .course-meta .type.video {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+
+        .course-meta .type.text {
+            background-color: #f3e8ff;
+            color: #6b21a8;
+        }
+
+        /* Keep your existing message styles */
+        .message {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .message.error {
+            background-color: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+
+        .message.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+         
+
+
+.tag-input-container {
+    margin-top: 5px;
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+}
+
+.tag {
+    background-color: #e9ecef;
+    border-radius: 3px;
+    padding: 5px 10px;
+    display: inline-flex;
+    align-items: center;
+    margin-right: 5px;
+}
+
+.tag span {
+    margin-right: 5px;
+}
+
+.tag button {
+    background: none;
+    border: none;
+    color: #666;
+    cursor: pointer;
+    padding: 0 5px;
+}
+
+.tag button:hover {
+    color: #dc3545;
+}
+
+
+
+
+
+
+
+
+
+
+
+    </style>
 </head>
 <body>
     <div class="dashboard">
@@ -197,144 +638,38 @@ try {
                 </button>
             </div>
 
+            <?php if (isset($message)): ?>
+                <div class="message <?php echo isset($messageType) ? $messageType : 'error'; ?>">
+                    <?php echo htmlspecialchars($message); ?>
+                </div>
+            <?php endif; ?>
 
-
-
-
+            <!-- Course Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <?php if (isset($error)): ?>
-        <div class="col-span-3 bg-red-50 text-red-600 p-4 rounded-lg">
-            <?php echo htmlspecialchars($error); ?>
-        </div>
-    <?php endif; ?>
-    
-    <?php foreach ($allCourses as $courseData): 
-        $course = $courseData['course'];
-        $badgeColor = $course->getCoursType() === 'video' ? 'blue' : 'purple';
-    ?>
-    <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
-        <div class="relative">
-            <?php if ($course->getCoursImage()): ?>
-                <img src="<?php echo htmlspecialchars($course->getCoursImage()); ?>" 
-                     alt="<?php echo htmlspecialchars($course->getTitle()); ?>" 
-                     class="w-full h-48 object-cover">
-            <?php else: ?>
-                <div class="w-full h-48 bg-gray-100 flex items-center justify-center">
-                    <i data-feather="<?php echo $course->getCoursType() === 'video' ? 'video' : 'file-text'; ?>" 
-                       class="w-8 h-8 text-gray-400"></i>
+                <?php foreach ($allCourses as $courseData): 
+                    $course = $courseData['course'];
+                    $badgeColor = $course->getCoursType() === 'video' ? 'blue' : 'purple';
+                ?>
+                <div class="course-card">
+                    <div class="course-image">
+                        <?php if ($course->getCoursImage()): ?>
+                            <img src="<?php echo htmlspecialchars($course->getCoursImage()); ?>" 
+                                 alt="<?php echo htmlspecialchars($course->getTitle()); ?>">
+                        <?php endif; ?>
+                    </div>
+                    <div class="course-content">
+                        <h3><?php echo htmlspecialchars($course->getTitle()); ?></h3>
+                        <p><?php echo htmlspecialchars($course->getDescription()); ?></p>
+                        <div class="course-meta">
+                            <span class="price">$<?php echo number_format($course->getPrice(), 2); ?></span>
+                            <span class="type"><?php echo ucfirst($course->getCoursType()); ?></span>
+                        </div>
+                    </div>
                 </div>
-            <?php endif; ?>
-            
-            <!-- Course Type Badge -->
-            <span class="absolute top-4 right-4 bg-<?php echo $badgeColor; ?>-500 text-white px-3 py-1 rounded-full text-xs font-medium">
-                <?php echo ucfirst($course->getCoursType()); ?> Course
-            </span>
-
-            <!-- Category Badge -->
-            <?php if (isset($courseData['category_name'])): ?>
-            <span class="absolute top-4 left-4 bg-white/90 text-gray-700 px-3 py-1 rounded-full text-xs font-medium">
-                <?php echo htmlspecialchars($courseData['category_name']); ?>
-            </span>
-            <?php endif; ?>
-        </div>
-
-        <div class="p-6">
-            <h3 class="font-semibold text-lg text-gray-800 mb-2">
-                <?php echo htmlspecialchars($course->getTitle()); ?>
-            </h3>
-            
-            <p class="text-gray-600 text-sm mb-4 line-clamp-2">
-                <?php echo htmlspecialchars($course->getDescription()); ?>
-            </p>
-
-            <!-- Course Details -->
-            <div class="flex items-center justify-between mb-4">
-                <div class="flex items-center space-x-4">
-                    <div class="flex items-center space-x-2">
-                        <i data-feather="dollar-sign" class="w-4 h-4 text-gray-400"></i>
-                        <span class="text-sm font-medium text-gray-900">
-                            <?php echo number_format($course->getPrice(), 2); ?>
-                        </span>
-                    </div>
-                    <?php if ($course instanceof TextCourse && $course->getDocumentCourse()): ?>
-                    <div class="flex items-center space-x-2">
-                        <i data-feather="file-text" class="w-4 h-4 text-gray-400"></i>
-                        <span class="text-sm text-gray-600">Document</span>
-                    </div>
-                    <?php endif; ?>
-                    <?php if ($course instanceof VideoCourse && $course->getVideoCourse()): ?>
-                    <div class="flex items-center space-x-2">
-                        <i data-feather="video" class="w-4 h-4 text-gray-400"></i>
-                        <span class="text-sm text-gray-600">Video</span>
-                    </div>
-                    <?php endif; ?>
-                </div>
-
-                <!-- Author Information -->
-                <div class="flex items-center space-x-2">
-                    <div class="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                        <i data-feather="user" class="w-3 h-3 text-gray-500"></i>
-                    </div>
-                    <span class="text-sm text-gray-600">
-                        <?php echo htmlspecialchars($courseData['author'] ?? 'Unknown Author'); ?>
-                    </span>
-                </div>
+                <?php endforeach; ?>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="flex space-x-2">
-                <a href="view_course.php?id=<?php echo $course->getId(); ?>" 
-                   class="flex-1 bg-gray-50 text-gray-700 py-2 rounded-lg hover:bg-gray-100 transition-colors text-center">
-                    View Details
-                </a>
-                <?php if (isset($_SESSION['user_id']) && $_SESSION['user_id'] == $course->getIdUser()): ?>
-                <div class="flex space-x-2">
-                    <a href="edit_course.php?id=<?php echo $course->getId(); ?>" 
-                       class="px-4 bg-blue-50 text-blue-600 py-2 rounded-lg hover:bg-blue-100 transition-colors">
-                        <i data-feather="edit-2" class="w-4 h-4"></i>
-                    </a>
-                    <button onclick="deleteCourse(<?php echo $course->getId(); ?>)"
-                            class="px-4 bg-red-50 text-red-600 py-2 rounded-lg hover:bg-red-100 transition-colors">
-                        <i data-feather="trash-2" class="w-4 h-4"></i>
-                    </button>
-                </div>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-    <?php endforeach; ?>
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            
+            <!-- Modal -->
             <div id="courseModal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
@@ -342,29 +677,36 @@ try {
                         <button class="close-btn" onclick="closeModal()">&times;</button>
                     </div>
                     
- <form method="POST" enctype="multipart/form-data" class="space-y-6">
+ <form method="POST" enctype="multipart/form-data">
     <div class="form-group">
-        <label for="title" class="block text-sm font-medium text-gray-700">Course Title</label>
-        <input type="text" name="title" id="title" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+        <label for="title">Course Title</label>
+        <input type="text" name="title" id="title" required>
+    </div>
+
+    <!-- New Tag Input Section -->
+    <div class="form-group">
+    <div class="form-group">
+    <label for="tag_titles">Tags (comma-separated)</label>
+    <input type="text" class="form-control" id="tag_titles" name="tag_titles" placeholder="Enter tags separated by commas">
+</div>
+            <!-- Hidden input to store tags for form submission -->
+            <input type="hidden" name="course_tags" id="courseTagsHidden">
+        </div>
     </div>
 
     <div class="form-group">
-        <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
-        <textarea name="description" id="description" rows="4" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+        <label for="description">Description</label>
+        <textarea name="description" id="description" rows="4" required></textarea>
     </div>
 
     <div class="form-group">
-        <label for="price" class="block text-sm font-medium text-gray-700">Price</label>
-        <input type="number" name="price" id="price" step="0.01" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+        <label for="price">Price</label>
+        <input type="number" name="price" id="price" step="0.01" required>
     </div>
 
     <div class="form-group">
-        <label for="id_categorie" class="block text-sm font-medium text-gray-700">Category</label>
-        <select name="id_categorie" id="id_categorie" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+        <label for="id_categorie">Category</label>
+        <select name="id_categorie" id="id_categorie" required>
             <option value="">Select a category</option>
             <?php foreach ($categories as $category): ?>
                 <option value="<?php echo htmlspecialchars($category['id']); ?>">
@@ -374,63 +716,38 @@ try {
         </select>
     </div>
 
-    <!-- Course Type Selection -->
     <div class="form-group">
-        <label for="coursetype" class="block text-sm font-medium text-gray-700">Course Type</label>
-        <select id="coursetype" name="coursetype" onchange="toggleCourseInputs()" required
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500">
+        <label for="coursetype">Course Type</label>
+        <select id="coursetype" name="coursetype" onchange="toggleCourseInputs()" required>
             <option value="">Select course type</option>
             <option value="text">Text Course</option>
             <option value="video">Video Course</option>
         </select>
     </div>
 
-    <!-- Text Course Content -->
     <div id="textCourseContent" class="form-group" style="display: none;">
-        <label for="documentcourse" class="block text-sm font-medium text-gray-700">Course Content (Text)</label>
-        <textarea id="documentcourse" name="documentcourse" rows="4"
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"></textarea>
+        <label for="documentcourse">Course Content (Text)</label>
+        <textarea id="documentcourse" name="documentcourse" rows="4"></textarea>
     </div>
 
-    <!-- Video Course Content -->
     <div id="videoCourseContent" class="form-group" style="display: none;">
-        <label for="videocourse" class="block text-sm font-medium text-gray-700">Course Video</label>
-        <input type="file" name="videocourse" id="videocourse" accept="video/*"
-            class="mt-1 block w-full text-sm text-gray-500
-            file:mr-4 file:py-2 file:px-4
-            file:rounded-md file:border-0
-            file:text-sm file:font-semibold
-            file:bg-indigo-50 file:text-indigo-700
-            hover:file:bg-indigo-100">
-        <p class="mt-1 text-sm text-gray-500">Upload your course video file (MP4, WebM, etc.)</p>
+        <label for="videocourse">Course Video</label>
+        <input type="file" name="videocourse" id="videocourse" accept="video/*">
+        <p class="help-text">Upload your course video file (MP4, WebM, or Ogg)</p>
     </div>
 
-    <!-- Course Thumbnail -->
     <div class="form-group">
-        <label for="coursimage" class="block text-sm font-medium text-gray-700">Course Thumbnail</label>
-        <input type="file" name="coursimage" id="coursimage" accept="image/*" required
-            class="mt-1 block w-full text-sm text-gray-500
-            file:mr-4 file:py-2 file:px-4
-            file:rounded-md file:border-0
-            file:text-sm file:font-semibold
-            file:bg-indigo-50 file:text-indigo-700
-            hover:file:bg-indigo-100">
+        <label for="coursimage">Course Thumbnail</label>
+        <input type="file" name="coursimage" id="coursimage" accept="image/*" required>
+        <p class="help-text">Upload a course thumbnail image (JPEG, PNG, or GIF)</p>
     </div>
 
-    <!-- Submit Button -->
-    <div class="flex justify-end">
-        <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-            Add Course
-        </button>
-    </div>
+    <button type="submit" class="submit-btn">Add Course</button>
 </form>
-
                 </div>
             </div>
         </div>
     </div>
-
-   
 
     <script>
         function openModal() {
@@ -440,6 +757,7 @@ try {
 
         function closeModal() {
             document.getElementById('courseModal').style.display = 'none';
+            document.body.style.display= 'none';
             document.body.style.overflow = 'auto';
         }
 
@@ -450,45 +768,136 @@ try {
                 closeModal();
             }
         }
+
         function toggleCourseInputs() {
-        const courseType = document.getElementById('coursetype').value;
-        const textContent = document.getElementById('textCourseContent');
-        const videoContent = document.getElementById('videoCourseContent');
+            const courseType = document.getElementById('coursetype').value;
+            const textContent = document.getElementById('textCourseContent');
+            const videoContent = document.getElementById('videoCourseContent');
 
-        // Hide both by default
-        textContent.style.display = 'none';
-        videoContent.style.display = 'none';
+            // Hide both by default
+            textContent.style.display = 'none';
+            videoContent.style.display = 'none';
 
-        // Show the appropriate input based on the selected type
-        if (courseType === 'text') {
-            textContent.style.display = 'block';
-        } else if (courseType === 'video') {
-            videoContent.style.display = 'block';
+            // Show the appropriate input based on selection
+            if (courseType === 'text') {
+                textContent.style.display = 'block';
+                document.getElementById('documentcourse').setAttribute('required', 'required');
+                document.getElementById('videocourse').removeAttribute('required');
+            } else if (courseType === 'video') {
+                videoContent.style.display = 'block';
+                document.getElementById('videocourse').setAttribute('required', 'required');
+                document.getElementById('documentcourse').removeAttribute('required');
+            }
         }
-    }
-    feather.replace();
-      
 
-      function deleteCourse(courseId) {
-          if (confirm('Are you sure you want to delete this course?')) {
-              fetch(`delete_course.php?id=${courseId}`, {
-                  method: 'DELETE',
-                  credentials: 'same-origin'
-              })
-              .then(response => response.json())
-              .then(data => {
-                  if (data.success) {
-                      location.reload();
-                  } else {
-                      alert('Error deleting course: ' + data.message);
-                  }
-              })
-              .catch(error => {
-                  console.error('Error:', error);
-                  alert('Error deleting course. Please try again.');
-              });
-          }
-      }
+        // Function to handle course deletion
+        function deleteCourse(courseId) {
+            if (confirm('Are you sure you want to delete this course?')) {
+                fetch(`delete_course.php?id=${courseId}`, {
+                    method: 'DELETE',
+                    credentials: 'same-origin'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        location.reload();
+                    } else {
+                        alert('Error deleting course: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error deleting course. Please try again.');
+                });
+            }
+        }
+
+        // Function to preview image before upload
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    const preview = document.getElementById('imagePreview');
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
+                
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Add event listener for image preview
+        document.getElementById('coursimage').addEventListener('change', function() {
+            previewImage(this);
+        });
+
+        // Initialize any UI components when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Reset form when modal is closed
+            const modal = document.getElementById('courseModal');
+            const form = modal.querySelector('form');
+            
+            document.querySelector('.close-btn').addEventListener('click', function() {
+                form.reset();
+                const preview = document.getElementById('imagePreview');
+                if (preview) {
+                    preview.style.display = 'none';
+                }
+            });
+
+            // Show success message if it exists
+            const successMessage = document.querySelector('.message.success');
+            if (successMessage) {
+                setTimeout(() => {
+                    successMessage.style.display = 'none';
+                }, 5000);
+            }
+        });
+
+        // Initialize Feather icons if you're using them
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+    const tagInput = document.getElementById('tagInput');
+    const tagContainer = document.getElementById('tagContainer');
+    const hiddenTagInput = document.getElementById('courseTagsHidden');
+    let tags = [];
+
+    tagInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            const tag = this.value.trim();
+            
+            if (tag && !tags.includes(tag)) {
+                tags.push(tag);
+                updateTags();
+                this.value = '';
+            }
+        }
+    });
+
+    function updateTags() {
+        // Update the hidden input with JSON string of tags
+        hiddenTagInput.value = JSON.stringify(tags);
+        
+        // Update the visual representation
+        tagContainer.innerHTML = tags.map(tag => `
+            <div class="tag">
+                <span>${tag}</span>
+                <button type="button" onclick="removeTag('${tag}')">&times;</button>
+            </div>
+        `).join('');
+    }
+
+    // Make removeTag function global so onclick can access it
+    window.removeTag = function(tagToRemove) {
+        tags = tags.filter(tag => tag !== tagToRemove);
+        updateTags();
+    }
+});
+
     </script>
 </body>
 </html>
