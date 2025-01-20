@@ -1,7 +1,6 @@
-
-
-
 <?php require_once '../classes/categorieClasse.php';
+
+
 
 // Handle Delete
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete_id'])) {
@@ -53,6 +52,7 @@ $categories = Category::getAll();
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -61,10 +61,10 @@ $categories = Category::getAll();
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <title>Categories Management</title>
     <style>
-       
-            body {
+        body {
             font-family: 'Inter', sans-serif;
         }
+
         .slide-panel {
             position: fixed;
             top: 0;
@@ -98,60 +98,61 @@ $categories = Category::getAll();
     </style>
     </style>
 </head>
+
 <body class="bg-gray-50">
-<div class="min-h-screen flex">
-   <!-- Sidebar -->
-<div class="w-64 bg-white shadow-lg p-4 flex flex-col">
-    <div class="flex items-center space-x-3 mb-8">
-        <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
-            <i data-feather="user" class="text-white"></i>
+    <div class="min-h-screen flex">
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-lg p-4 flex flex-col">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                    <i data-feather="user" class="text-white"></i>
+                </div>
+                <div>
+                    <h2 class="font-semibold text-gray-800">Henry Klein</h2>
+                    <p class="text-sm text-gray-500">Administrator</p>
+                </div>
+            </div>
+
+            <nav class="space-y-2 flex-1">
+                <!-- Users Section -->
+                <div class="text-gray-800 font-medium px-4 py-2 mb-2">Main Menu</div>
+
+                <a href="users.php" class="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-lg flex items-center space-x-3 font-medium">
+                    <i data-feather="users" class="w-4 h-4"></i>
+                    <span>Users</span>
+                </a>
+
+                <!-- Courses Section -->
+                <a href="courses.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <i data-feather="book-open" class="w-4 h-4"></i>
+                    <span>Courses</span>
+                </a>
+
+                <!-- Categories Section -->
+                <a href="categories.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <i data-feather="folder" class="w-4 h-4"></i>
+                    <span>Categories</span>
+                </a>
+
+                <!-- Tags Section -->
+                <a href="tags.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <i data-feather="tag" class="w-4 h-4"></i>
+                    <span>Tags</span>
+                </a>
+
+                <!-- Statistics Section -->
+                <a href="" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <i data-feather="bar-chart-2" class="w-4 h-4"></i>
+                    <span>Statistics</span>
+                </a>
+            </nav>
+
+            <!-- Logout Button -->
+            <a href="../teacher/logout.php" class="mt-4 flex items-center space-x-2 text-gray-600 hover:text-red-600 px-4 py-2.5 rounded-lg transition-colors">
+                <i data-feather="log-out" class="w-4 h-4"></i>
+                <span>Logout</span>
+            </a>
         </div>
-        <div>
-            <h2 class="font-semibold text-gray-800">Henry Klein</h2>
-            <p class="text-sm text-gray-500">Administrator</p>
-        </div>
-    </div>
-     
-    <nav class="space-y-2 flex-1">
-        <!-- Users Section -->
-        <div class="text-gray-800 font-medium px-4 py-2 mb-2">Main Menu</div>
-        
-        <a href="users.php" class="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-lg flex items-center space-x-3 font-medium">
-            <i data-feather="users" class="w-4 h-4"></i>
-            <span>Users</span>
-        </a>
-
-        <!-- Courses Section -->
-        <a href="courses.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
-            <i data-feather="book-open" class="w-4 h-4"></i>
-            <span>Courses</span>
-        </a>
-
-        <!-- Categories Section -->
-        <a href="categories.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
-            <i data-feather="folder" class="w-4 h-4"></i>
-            <span>Categories</span>
-        </a>
-
-        <!-- Tags Section -->
-        <a href="tags.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
-            <i data-feather="tag" class="w-4 h-4"></i>
-            <span>Tags</span>
-        </a>
-
-        <!-- Statistics Section -->
-        <a href="" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
-            <i data-feather="bar-chart-2" class="w-4 h-4"></i>
-            <span>Statistics</span>
-        </a>
-    </nav>
-
-    <!-- Logout Button -->
-    <a href="/logout" class="mt-4 flex items-center space-x-2 text-gray-600 hover:text-red-600 px-4 py-2.5 rounded-lg transition-colors">
-        <i data-feather="log-out" class="w-4 h-4"></i>
-        <span>Logout</span>
-    </a>
-</div>
 
 
 
@@ -174,7 +175,7 @@ $categories = Category::getAll();
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <div class="flex justify-between items-center">
                         <div>
@@ -248,11 +249,13 @@ $categories = Category::getAll();
                             <?php foreach ($categories as $category): ?>
                                 <tr class="border-t border-gray-100">
                                     <td class="py-4 pr-6"><?php echo htmlspecialchars($category->getTitle()); ?></td>
-                                    <td class="py-4 pr-6"><p class="truncate w-96"><?php echo htmlspecialchars($category->getDescription()); ?></p></td>
+                                    <td class="py-4 pr-6">
+                                        <p class="truncate w-96"><?php echo htmlspecialchars($category->getDescription()); ?></p>
+                                    </td>
                                     <td class="py-4">
                                         <div class="flex space-x-2">
-                                            <button onclick="editCategory(<?php echo $category->getId(); ?>, '<?php echo addslashes($category->getTitle()); ?>', '<?php echo addslashes($category->getDescription()); ?>')" 
-                                                    class="text-blue-500 hover:text-blue-600">
+                                            <button onclick="editCategory(<?php echo $category->getId(); ?>, '<?php echo addslashes($category->getTitle()); ?>', '<?php echo addslashes($category->getDescription()); ?>')"
+                                                class="text-blue-500 hover:text-blue-600">
                                                 <i data-feather="edit-2" class="w-4 h-4"></i>
                                             </button>
                                             <form action="" method="POST" class="inline" onsubmit="return confirm('Are you sure you want to delete this category?');">
@@ -271,10 +274,10 @@ $categories = Category::getAll();
             </div>
         </div>
     </div>
- 
-   
-</div>
-<div id="slidePanel" class="slide-panel">
+
+
+    </div>
+    <div id="slidePanel" class="slide-panel">
         <div class="p-6">
             <div class="flex justify-between items-center mb-6">
                 <h3 id="slidePanelTitle" class="text-xl font-semibold text-gray-800">Add New Category</h3>
@@ -282,19 +285,19 @@ $categories = Category::getAll();
                     <i data-feather="x" class="w-6 h-6"></i>
                 </button>
             </div>
-            
+
             <form id="categoryForm" class="space-y-4" method="post">
                 <input type="hidden" id="categoryId" name="id" value="">
                 <div>
                     <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title</label>
                     <input type="text" id="title" name="title" required
-                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
-                
+
                 <div>
                     <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
                     <textarea id="description" name="description" rows="4" required
-                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
+                        class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"></textarea>
                 </div>
 
                 <div class="pt-4">
@@ -357,4 +360,5 @@ $categories = Category::getAll();
     </script>
     <div id="overlay" class="overlay"></div>
 </body>
+
 </html>

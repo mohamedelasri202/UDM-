@@ -1,225 +1,223 @@
-<?php 
-require_once 'classes/connection.php';
-class Tags {
-    private $id;
-    private $title;
-
-    public function __construct($id, $title) {
-        $this->id = $id;
-        $this->title = $title;
-    }
-
-    public function getID() {
-        return $this->id;
-    }
-
-    public function getTitle() {
-        return $this->title;
-    }
-
-    public function addTags() {
-        $db = Database::getInstance()->getConnection();
-        $sql = $db->prepare("INSERT INTO tags (title) VALUES (:title)");
-        $sql->bindParam(':title', $this->title);
-        
-        if($sql->execute()) {
-            $this->id = $db->lastInsertId();
-            return new Tags($this->id, $this->title);
-        }
-        return null;
-    }
-
-    public static function afficheTags() {
-        $db = Database::getInstance()->getConnection();
-        $stm = $db->prepare("SELECT * FROM tags");
-        $stm->execute();
-        
-        $tags = [];
-        $results = $stm->fetchAll(PDO::FETCH_ASSOC);
-        
-        foreach($results as $row) {
-            $tags[] = new Tags($row['id'], $row['title']);
-        }
-        
-        return $tags;
-    }
-
-    public function editeTags() {
-        $db = Database::getInstance()->getConnection();
-        $stm = $db->prepare("UPDATE tags SET title = :title WHERE id = :id");
-        $stm->bindParam(':title', $this->title);
-        $stm->bindParam(':id', $this->id);
-        
-        if($stm->execute()) {
-            return new Tags($this->id, $this->title);
-        }
-        return null;
-    }
-
-    public function deleteTags() {
-        $db = Database::getInstance()->getConnection();
-        $stm = $db->prepare("DELETE FROM tags WHERE id = :id");
-        $stm->bindParam(':id', $this->id);
-        
-        return $stm->execute();
-    }
-
-    public static function getTagById($id) {
-        $db = Database::getInstance()->getConnection();
-        $stm = $db->prepare("SELECT * FROM tags WHERE id = :id");
-        $stm->bindParam(':id', $id);
-        $stm->execute();
-        
-        if($row = $stm->fetch(PDO::FETCH_ASSOC)) {
-            return new Tags($row['id'], $row['title']);
-        }
-        return null;
-    }
-}
-
-
-
-
-
-
-
-// In your form processing file (e.g., process_form.php)
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Get the comma-separated tags from the form
-    $tagTitles = $_POST['tag_title']; 
-
-    if (!empty($tagTitles)) {
-        // Split the tags into an array
-        $tagsArray = array_map('trim', explode(',', $tagTitles));
-
-        foreach ($tagsArray as $tagTitle) {
-            if (!empty($tagTitle)) {
-                // Create a new Tags object for each tag
-                $tag = new Tags(null, $tagTitle);
-                $newTag = $tag->addTags();
-
-                if ($newTag) {
-                    echo "Tag added successfully with ID: " . $newTag->getID() . "<br>";
-                } else {
-                    echo "Error adding tag: $tagTitle<br>";
-                }
-            }
-        }
-    } else {
-        echo "No tags provided.";
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-?>
-
-
 <style>
-.tag-input-container {
-    margin-top: 5px;
-}
+    /* Fix for modal positioning and scrolling */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        overflow-y: auto;
+        padding: 20px;
+        box-sizing: border-box;
+    }
 
-.tags-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 10px;
-}
+    .modal-content {
+        background-color: #fff;
+        margin: 2rem auto;
+        padding: 2rem;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 600px;
+        position: relative;
+        max-height: calc(100vh - 4rem);
+        overflow-y: auto;
+    }
 
-.tag {
-    background-color: #e9ecef;
-    border-radius: 3px;
-    padding: 5px 10px;
-    display: inline-flex;
-    align-items: center;
-}
+    /* Better form styling */
+    .form-group {
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
 
-.tag span {
-    margin-right: 5px;
-}
+    .form-group input[type="text"],
+    .form-group input[type="number"],
+    .form-group select,
+    .form-group textarea {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 1rem;
+        background-color: #fff;
+        box-sizing: border-box;
+    }
 
-.tag button {
-    background: none;
-    border: none;
-    color: #666;
-    cursor: pointer;
-    padding: 0 5px;
-}
+    .form-group textarea {
+        min-height: 100px;
+        resize: vertical;
+    }
 
-.tag button:hover {
-    color: #dc3545;
-}
+    /* Fix file input styling */
+
+
+
+
+
+    .form-group input[type="file"] {
+        padding: 0.5rem 0;
+        width: 100%;
+    }
+
+    /* Better button styling */
+    .submit-btn {
+        background-color: #4CAF50;
+        color: white;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.2s ease;
+    }
+
+    .submit-btn:hover {
+        background-color: #45a049;
+    }
+
+    .close-btn {
+        position: absolute;
+        right: 1rem;
+        top: 1rem;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0.5rem;
+        color: #666;
+        transition: color 0.2s ease;
+    }
+
+    .close-btn:hover {
+        color: #000;
+    }
+
+    /* Fix modal header */
+    .modal-header {
+        padding-right: 2rem;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 1rem;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 768px) {
+        .modal-content {
+            margin: 1rem;
+            padding: 1rem;
+            max-height: calc(100vh - 2rem);
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+    }
 </style>
 
-<form method="POST">
-    <div class="form-group">
-        <label for="tagInput">Course Tags</label>
-        <div class="tag-input-container">
-            <input type="text" id="tagInput" placeholder="Enter tags and press Enter">
-            <div id="tagContainer" class="tags-container"></div>
-            <!-- Hidden input to store tags for form submission -->
-            <input type="hidden" name="tag_title" id="tag_title">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div id="courseModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add New Course</h2>
+            <button class="close-btn" onclick="closeModal()">&times;</button>
         </div>
-    </div>
-    <button type="submit">Add Tag</button>
-</form>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const tagInput = document.getElementById('tagInput');
-    const tagContainer = document.getElementById('tagContainer');
-    const hiddenTagInput = document.getElementById('tag_title');
-    let tags = [];
-
-    tagInput.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            const tag = this.value.trim();
-
-            if (tag && !tags.includes(tag)) {
-                tags.push(tag);
-                updateTags();
-                this.value = '';
-            }
-        }
-    });
-
-    function updateTags() {
-        // Update the hidden input with a comma-separated string of tags
-        hiddenTagInput.value = tags.join(',');
-
-        // Update the visual representation of tags
-        tagContainer.innerHTML = tags.map(tag => `
-            <div class="tag">
-                <span>${escapeHtml(tag)}</span>
-                <button type="button" onclick="removeTag('${escapeHtml(tag)}')">&times;</button>
+        <form method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="title">Course Title</label>
+                <input type="text" name="title" id="title" required>
             </div>
-        `).join('');
-    }
 
-    // Remove a tag from the list
-    window.removeTag = function(tagToRemove) {
-        tags = tags.filter(tag => tag !== tagToRemove);
-        updateTags();
-    }
+            <div class="form-group">
+                <label for="tag_titles">Tags (comma-separated)</label>
+                <input type="text" class="form-control" id="tag_titles" name="tag_titles" placeholder="Enter tags separated by commas">
+            </div>
 
-    // Escape HTML to prevent potential XSS
-    function escapeHtml(str) {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
-});
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea name="description" id="description" rows="4" required></textarea>
+            </div>
 
+            <div class="form-group">
+                <label for="price">Price</label>
+                <input type="number" name="price" id="price" step="0.01" required>
+            </div>
 
-</script>
+            <div class="form-group">
+                <label for="id_categorie">Category</label>
+                <select name="id_categorie" id="id_categorie" required>
+                    <option value="">Select a category</option>
+                    <?php foreach ($categories as $category): ?>
+                        <option value="<?php echo htmlspecialchars($category['id']); ?>">
+                            <?php echo htmlspecialchars($category['title']); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="coursetype">Course Type</label>
+                <select id="coursetype" name="coursetype" onchange="toggleCourseInputs()" required>
+                    <option value="">Select course type</option>
+                    <option value="text">Text Course</option>
+                    <option value="video">Video Course</option>
+                </select>
+            </div>
+
+            <div id="textCourseContent" class="form-group" style="display: none;">
+                <label for="documentcourse">Course Content (Text)</label>
+                <textarea id="documentcourse" name="documentcourse" rows="4"></textarea>
+            </div>
+
+            <div id="videoCourseContent" class="form-group" style="display: none;">
+                <label for="videocourse">Course Video</label>
+                <input type="file" name="videocourse" id="videocourse" accept="video/*">
+                <p class="help-text">Upload your course video file (MP4, WebM, or Ogg)</p>
+            </div>
+
+            <div class="form-group">
+                <label for="coursimage">Course Thumbnail</label>
+                <input type="file" name="coursimage" id="coursimage" accept="image/*" required>
+                <p class="help-text">Upload a course thumbnail image (JPEG, PNG, or GIF)</p>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-btn">Add Course</button>
+            </div>
+        </form>
+    </div>
+</div>

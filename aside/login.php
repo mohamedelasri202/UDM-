@@ -10,19 +10,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     try {
         $user = User::signin($email, $password);
-        
+
         // Store user data in session
         $_SESSION['user_id'] = $user->getId();
         $_SESSION['name'] = $user->getName();
         $_SESSION['role_id'] = $user->getRoleId();
-        
+
         // Redirect based on role
         switch ($user->getRoleId()) {
             case User::ROLE_STUDENT:
                 header('Location:../front.php');
                 break;
             case User::ROLE_TEACHER:
-                header('Location: ../teacher/coursevideo.php');
+                header('Location: ../teacher/course.php');
                 break;
             default:
                 // Assuming admin role_id is 3
@@ -43,6 +43,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -52,17 +53,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             max-width: 500px;
             margin: 50px auto;
             padding: 20px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
             border-radius: 5px;
         }
+
         .form-group {
             margin-bottom: 15px;
         }
+
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
         }
+
         input {
             width: 100%;
             padding: 8px;
@@ -70,6 +74,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 4px;
             box-sizing: border-box;
         }
+
         button {
             background-color: #4CAF50;
             color: white;
@@ -79,15 +84,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             cursor: pointer;
             width: 100%;
         }
+
         button:hover {
             background-color: #45a049;
         }
+
         .message {
             padding: 10px;
             margin-bottom: 20px;
             border-radius: 4px;
             text-align: center;
         }
+
         .error {
             background-color: #f8d7da;
             color: #721c24;
@@ -95,10 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h2>Login</h2>
-        
+
         <?php if (!empty($message)): ?>
             <div class="message error">
                 <?php echo htmlspecialchars($message); ?>
@@ -110,18 +119,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <label>Email <span class="required">*</span></label>
                 <input type="email" name="email" required>
             </div>
-            
+
             <div class="form-group">
                 <label>Password <span class="required">*</span></label>
                 <input type="password" name="password" required>
             </div>
-            
+
             <button type="submit">Login</button>
         </form>
-        
+
         <p style="text-align: center; margin-top: 20px;">
             Don't have an account? <a href="register.php">Register here</a>
         </p>
     </div>
 </body>
+
 </html>

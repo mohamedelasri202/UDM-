@@ -1,12 +1,20 @@
 <?php
+
+
+
+
+
+
 require_once '../classes/connection.php';
-class Category {
+class Category
+{
     private $id;
     private $title;
     private $description;
     private $db;
 
-    public function __construct($id = null, $title = '', $description = '') {
+    public function __construct($id = null, $title = '', $description = '')
+    {
         $this->id = $id;
         $this->title = $title;
         $this->description = $description;
@@ -14,29 +22,35 @@ class Category {
     }
 
     // Getters
-    public function getId() {
+    public function getId()
+    {
         return $this->id;
     }
 
-    public function getTitle() {
+    public function getTitle()
+    {
         return $this->title;
     }
 
-    public function getDescription() {
+    public function getDescription()
+    {
         return $this->description;
     }
 
     // Setters
-    public function setTitle($title) {
+    public function setTitle($title)
+    {
         $this->title = $title;
     }
 
-    public function setDescription($description) {
+    public function setDescription($description)
+    {
         $this->description = $description;
     }
 
     // CRUD Operations
-    public function save() {
+    public function save()
+    {
         try {
             if ($this->id === null) {
                 // Create new category
@@ -53,7 +67,7 @@ class Category {
 
             $stmt->bindParam(':title', $this->title);
             $stmt->bindParam(':description', $this->description);
-            
+
             return $stmt->execute();
         } catch (PDOException $e) {
             error_log("Error saving category: " . $e->getMessage());
@@ -61,7 +75,8 @@ class Category {
         }
     }
 
-    public function delete() {
+    public function delete()
+    {
         if ($this->id === null) {
             return false;
         }
@@ -76,7 +91,8 @@ class Category {
         }
     }
 
-    public static function findById($id) {
+    public static function findById($id)
+    {
         try {
             $db = Database::getInstance()->getConnection();
             $stmt = $db->prepare("SELECT * FROM categories WHERE id = :id");
@@ -98,7 +114,8 @@ class Category {
         }
     }
 
-    public static function getAll() {
+    public static function getAll()
+    {
         try {
             $db = Database::getInstance()->getConnection();
             $stmt = $db->query("SELECT * FROM categories ORDER BY id DESC");

@@ -1,6 +1,6 @@
 <?php
 require_once 'connection.php';
-// CourseTag.php
+
 class CourseTag {
     private $id_course;
     private $id_tag;
@@ -30,4 +30,4 @@ class CourseTag {
     }
 }
 
-// Modified course creation logic
+

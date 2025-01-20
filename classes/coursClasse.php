@@ -1,7 +1,8 @@
 <?php
 require_once 'connection.php';
 
-abstract class Course {
+abstract class Course
+{
     protected $id;
     protected $title;
     protected $description;
@@ -10,8 +11,9 @@ abstract class Course {
     protected $id_categorie;
     protected $coursimage;
     protected $coursetype;
-    
-    public function __construct($id, $title, $description, $price, $id_user, $id_categorie, $coursimage, $coursetype) {
+
+    public function __construct($id, $title, $description, $price, $id_user, $id_categorie, $coursimage, $coursetype)
+    {
         $this->id = $id;
         $this->title = $title;
         $this->description = $description;
@@ -21,76 +23,91 @@ abstract class Course {
         $this->coursimage = $coursimage;
         $this->coursetype = $coursetype;
     }
-    
+
     // Abstract methods
     abstract protected function addCourse($db);
     abstract protected function afficheCourse($db);
-    
+
     // Getters and setters
-    public function setTitle($title) {
+    public function setTitle($title)
+    {
         $this->title = htmlspecialchars($title);
     }
-    
-    public function getTitle() {
+
+    public function getTitle()
+    {
         return $this->title;
     }
-    
-    public function setDescription($description) {
+
+    public function setDescription($description)
+    {
         $this->description = htmlspecialchars($description);
     }
-    
-    public function getDescription() {
+
+    public function getDescription()
+    {
         return $this->description;
     }
-    
-    public function setPrice($price) {
+
+    public function setPrice($price)
+    {
         $this->price = floatval($price);
     }
-    
-    public function getPrice() {
+
+    public function getPrice()
+    {
         return $this->price;
     }
-    
-    public function setIdUser($id_user) {
+
+    public function setIdUser($id_user)
+    {
         $this->id_user = intval($id_user);
     }
-    
-    public function getIdUser() {
+
+    public function getIdUser()
+    {
         return $this->id_user;
     }
-    
-    public function setIdCategorie($id_categorie) {
+
+    public function setIdCategorie($id_categorie)
+    {
         $this->id_categorie = intval($id_categorie);
     }
-    
-    public function getIdCategorie() {
+
+    public function getIdCategorie()
+    {
         return $this->id_categorie;
     }
-    
-    public function setCoursImage($coursimage) {
+
+    public function setCoursImage($coursimage)
+    {
         $this->coursimage = $coursimage;
     }
-    
-    public function getCoursImage() {
+
+    public function getCoursImage()
+    {
         return $this->coursimage;
     }
-    
-    public function setCoursType($coursetype) {
+
+    public function setCoursType($coursetype)
+    {
         $this->coursetype = $coursetype;
     }
-    
-    public function getCoursType() {
+
+    public function getCoursType()
+    {
         return $this->coursetype;
     }
 
-    public static function getCourseById($db, $id) {
+    public static function getCourseById($db, $id)
+    {
         try {
             $query = "SELECT * FROM courses WHERE id = :id";
             $stmt = $db->prepare($query);
             $stmt->execute([':id' => $id]);
-            
+
             $course = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             if ($course) {
                 if ($course['coursetype'] === 'text') {
                     return new TextCourse(
@@ -126,33 +143,45 @@ abstract class Course {
     }
 }
 
-class TextCourse extends Course {
+class TextCourse extends Course
+{
     private $documentcourse;
-    
-    public function __construct($id = null, $title = null, $description = null, $price = null, 
-                              $id_user = null, $id_categorie = null, $coursimage = null, 
-                              $coursetype = 'text', $documentcourse = null) {
+
+    public function __construct(
+        $id = null,
+        $title = null,
+        $description = null,
+        $price = null,
+        $id_user = null,
+        $id_categorie = null,
+        $coursimage = null,
+        $coursetype = 'text',
+        $documentcourse = null
+    ) {
         parent::__construct($id, $title, $description, $price, $id_user, $id_categorie, $coursimage, $coursetype);
         $this->documentcourse = $documentcourse;
     }
-    
-    public function getDocumentCourse() {
+
+    public function getDocumentCourse()
+    {
         return $this->documentcourse;
     }
-    
-    public function setDocumentCourse($documentcourse) {
+
+    public function setDocumentCourse($documentcourse)
+    {
         $this->documentcourse = htmlspecialchars($documentcourse);
     }
-    
-    public function addCourse($db) {
+
+    public function addCourse($db)
+    {
         try {
             $query = "INSERT INTO courses (title, description, price, id_user, id_categorie, 
                       coursetype, coursimage, documentcourse) 
                       VALUES (:title, :description, :price, :id_user, :id_categorie, 
                       :coursetype, :coursimage, :documentcourse)";
-            
+
             $stmt = $db->prepare($query);
-            
+
             $params = [
                 ':title' => $this->title,
                 ':description' => $this->description,
@@ -163,7 +192,7 @@ class TextCourse extends Course {
                 ':coursimage' => $this->coursimage,
                 ':documentcourse' => $this->documentcourse
             ];
-            
+
             return $stmt->execute($params);
         } catch (PDOException $e) {
             error_log("Error adding text course: " . $e->getMessage());
@@ -171,17 +200,18 @@ class TextCourse extends Course {
         }
     }
 
-    public function afficheCourse($db) {
+    public function afficheCourse($db)
+    {
         try {
             $query = "SELECT c.*, u.name as author, cat.title as category_name 
                      FROM courses c 
                      LEFT JOIN user u ON c.id_user = u.id 
                      LEFT JOIN categories cat ON c.id_categorie = cat.id 
                      WHERE c.coursetype = 'text'";
-            
+
             $stmt = $db->prepare($query);
             $stmt->execute();
-            
+
             $courses = [];
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $course = new TextCourse(
@@ -195,14 +225,14 @@ class TextCourse extends Course {
                     'text',
                     $row['documentcourse']
                 );
-                
+
                 $courses[] = [
                     'course' => $course,
                     'author' => $row['author'],
                     'category_name' => $row['category_name']
                 ];
             }
-            
+
             return $courses;
         } catch (PDOException $e) {
             error_log("Error retrieving text courses: " . $e->getMessage());
@@ -211,33 +241,45 @@ class TextCourse extends Course {
     }
 }
 
-class VideoCourse extends Course {
+class VideoCourse extends Course
+{
     private $videocourse;
-    
-    public function __construct($id = null, $title = null, $description = null, $price = null, 
-                              $id_user = null, $id_categorie = null, $coursimage = null, 
-                              $coursetype = 'video', $videocourse = null) {
+
+    public function __construct(
+        $id = null,
+        $title = null,
+        $description = null,
+        $price = null,
+        $id_user = null,
+        $id_categorie = null,
+        $coursimage = null,
+        $coursetype = 'video',
+        $videocourse = null
+    ) {
         parent::__construct($id, $title, $description, $price, $id_user, $id_categorie, $coursimage, $coursetype);
         $this->videocourse = $videocourse;
     }
-    
-    public function getVideoCourse() {
+
+    public function getVideoCourse()
+    {
         return $this->videocourse;
     }
-    
-    public function setVideoCourse($videocourse) {
+
+    public function setVideoCourse($videocourse)
+    {
         $this->videocourse = $videocourse;
     }
-    
-    public function addCourse($db) {
+
+    public function addCourse($db)
+    {
         try {
             $query = "INSERT INTO courses (title, description, price, id_user, id_categorie, 
                       coursetype, coursimage, videocourse) 
                       VALUES (:title, :description, :price, :id_user, :id_categorie, 
                       :coursetype, :coursimage, :videocourse)";
-            
+
             $stmt = $db->prepare($query);
-            
+
             $params = [
                 ':title' => $this->title,
                 ':description' => $this->description,
@@ -248,7 +290,7 @@ class VideoCourse extends Course {
                 ':coursimage' => $this->coursimage,
                 ':videocourse' => $this->videocourse
             ];
-            
+
             return $stmt->execute($params);
         } catch (PDOException $e) {
             error_log("Error adding video course: " . $e->getMessage());
@@ -256,17 +298,18 @@ class VideoCourse extends Course {
         }
     }
 
-    public function afficheCourse($db) {
+    public function afficheCourse($db)
+    {
         try {
-            $query = "SELECT c.*, u.username as author, cat.name as category_name 
+            $query = "SELECT c.*, u.name as author, cat.title as category_name 
                      FROM courses c 
-                     LEFT JOIN users u ON c.id_user = u.id 
+                     LEFT JOIN user u ON c.id_user = u.id 
                      LEFT JOIN categories cat ON c.id_categorie = cat.id 
                      WHERE c.coursetype = 'video'";
-            
+
             $stmt = $db->prepare($query);
             $stmt->execute();
-            
+
             $courses = [];
             while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
                 $course = new VideoCourse(
@@ -280,14 +323,14 @@ class VideoCourse extends Course {
                     'video',
                     $row['videocourse']
                 );
-                
+
                 $courses[] = [
                     'course' => $course,
                     'author' => $row['author'],
                     'category_name' => $row['category_name']
                 ];
             }
-            
+
             return $courses;
         } catch (PDOException $e) {
             error_log("Error retrieving video courses: " . $e->getMessage());
