@@ -2,36 +2,35 @@
 // Process form submission
 
 
-    session_start();
+session_start();
 
-    if(!isset($_SESSION['user_id'])) {
-        header('Location:../aside/login.php');
-        
-        exit();
+if (!isset($_SESSION['user_id'])) {
+    header('Location:../aside/login.php');
 
-    }
-    require_once '../classes/connection.php';
-    require_once '../classes/coursClasse.php';
-    require_once '../classes/categorieClasse.php';
-    $db = Database::getInstance()->getConnection();
-    $message = '';
+    exit();
+}
+require_once '../classes/connection.php';
+require_once '../classes/coursClasse.php';
+require_once '../classes/categorieClasse.php';
+$db = Database::getInstance()->getConnection();
+$message = '';
 // Process form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-   
+
 
 
     try {
         // Validate file types
         $allowedVideoTypes = ['video/mp4', 'video/webm', 'video/ogg'];
         $allowedImageTypes = ['image/jpeg', 'image/png', 'image/gif'];
-        
+
         $videoFileType = $_FILES["videocourse"]["type"];
         $imageFileType = $_FILES["coursimage"]["type"];
-        
+
         if (!in_array($videoFileType, $allowedVideoTypes)) {
             throw new Exception("Invalid video file type. Please upload MP4, WebM, or Ogg video.");
         }
-        
+
         if (!in_array($imageFileType, $allowedImageTypes)) {
             throw new Exception("Invalid image file type. Please upload JPEG, PNG, or GIF image.");
         }
@@ -40,15 +39,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $targetImageDir = "uploads/images/";
         $imageFileName = basename($_FILES["coursimage"]["name"]);
         $targetImagePath = $targetImageDir . time() . '_' . $imageFileName;
-        
+
         // Handle video upload
         $targetVideoDir = "uploads/videos/";
         $videoFileName = basename($_FILES["videocourse"]["name"]);
         $targetVideoPath = $targetVideoDir . time() . '_' . $videoFileName;
-        
-        if (move_uploaded_file($_FILES["coursimage"]["tmp_name"], $targetImagePath) &&
-            move_uploaded_file($_FILES["videocourse"]["tmp_name"], $targetVideoPath)) {
-            
+
+        if (
+            move_uploaded_file($_FILES["coursimage"]["tmp_name"], $targetImagePath) &&
+            move_uploaded_file($_FILES["videocourse"]["tmp_name"], $targetVideoPath)
+        ) {
+
             // Create new video course
             $videoCourse = new VideoCourse(
                 null,
@@ -86,12 +87,14 @@ $categories = $db->query($categoryQuery)->fetchAll(PDO::FETCH_ASSOC);
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Add Video Course</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
 </head>
+
 <body class="bg-gray-100 p-8">
     <div class="max-w-2xl mx-auto bg-white p-8 rounded-lg shadow">
         <h1 class="text-2xl font-bold mb-6">Add New Video Course</h1>
@@ -170,23 +173,25 @@ $categories = $db->query($categoryQuery)->fetchAll(PDO::FETCH_ASSOC);
         </form>
     </div>
 </body>
+
 </html>
-   
-    <script>
-        // Client-side validation for video file
-        document.querySelector('form').addEventListener('submit', function(e) {
-            const videoInput = document.getElementById('videocourse');
-            const videoFile = videoInput.files[0];
-            
-            if (videoFile) {
-                const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
-                if (!allowedTypes.includes(videoFile.type)) {
-                    e.preventDefault();
-                    alert('Please upload a valid video file (MP4, WebM, or Ogg).');
-                    return false;
-                }
+
+<script>
+    // Client-side validation for video file
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const videoInput = document.getElementById('videocourse');
+        const videoFile = videoInput.files[0];
+
+        if (videoFile) {
+            const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+            if (!allowedTypes.includes(videoFile.type)) {
+                e.preventDefault();
+                alert('Please upload a valid video file (MP4, WebM, or Ogg).');
+                return false;
             }
-        });
-    </script>
+        }
+    });
+</script>
 </body>
+
 </html>

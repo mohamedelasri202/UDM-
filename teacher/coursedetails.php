@@ -1,292 +1,386 @@
+<?php
+
+require_once '../classes/connection.php';
+require_once '../classes/coursClasse.php';
+require_once '../classes/categorieClasse.php';
+require_once '../classes/tags.php';
+require_once '../classes/tagscours.php';
+
+class CourseDetails
+{
+    private $id;
+    private $title;
+    private $description;
+    private $price;
+    private $author;
+    private $category;
+    private $image;
+    private $type;
+    private $content; // video path or text content
+    private $tags;
+
+    public function __construct($id, $title, $description, $price, $author, $category, $image, $type, $content, $tags)
+    {
+        $this->id = $id;
+        $this->title = $title;
+        $this->description = $description;
+        $this->price = $price;
+        $this->author = $author;
+        $this->category = $category;
+        $this->image = $image;
+        $this->type = $type;
+        $this->content = $content;
+        $this->tags = $tags;
+    }
+
+    // Getters
+    public function getId()
+    {
+        return $this->id;
+    }
+    public function getTitle()
+    {
+        return $this->title;
+    }
+    public function getDescription()
+    {
+        return $this->description;
+    }
+    public function getPrice()
+    {
+        return $this->price;
+    }
+    public function getAuthor()
+    {
+        return $this->author;
+    }
+    public function getCategory()
+    {
+        return $this->category;
+    }
+    public function getImage()
+    {
+        return $this->image;
+    }
+    public function getType()
+    {
+        return $this->type;
+    }
+    public function getContent()
+    {
+        return $this->content;
+    }
+    public function getTags()
+    {
+        return $this->tags;
+    }
+
+    public static function getCourseById($courseId)
+    {
+        $db = Database::getInstance()->getConnection();
+
+        try {
+            // Get course basic info and join with related tables
+            $stmt = $db->prepare("
+                SELECT c.*, u.name as author_name, cat.title as category_name,
+                       CASE 
+                           WHEN c.coursetype = 'video' THEN c.videocourse
+                           ELSE c.documentcourse
+                       END as content
+                FROM courses c
+                LEFT JOIN user u ON c.id_user = u.id
+                LEFT JOIN categories cat ON c.id_categorie = cat.id
+                WHERE c.id = ?
+            ");
+            $stmt->execute([$courseId]);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$result) {
+                return null;
+            }
+
+            // Get tags for the course
+            $tagStmt = $db->prepare("
+                SELECT t.* 
+                FROM tags t 
+                JOIN tagscours tc ON t.id = tc.id_tag 
+                WHERE tc.id_course = ?
+            ");
+            $tagStmt->execute([$courseId]);
+            $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
+
+            // Create and return CourseDetails object
+            return new CourseDetails(
+                $result['id'],
+                $result['title'],
+                $result['description'],
+                $result['price'],
+                $result['author_name'],
+                $result['category_name'],
+                $result['coursimage'],
+                $result['coursetype'],
+                $result['content'],
+                $tags
+            );
+        } catch (PDOException $e) {
+            error_log("Error in getCourseById: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    public static function getRelatedCourses($categoryId, $currentCourseId, $limit = 3)
+    {
+        $db = Database::getInstance()->getConnection();
+
+        try {
+            $stmt = $db->prepare("
+                SELECT c.*, u.name as author_name, cat.title as category_name,
+                       CASE 
+                           WHEN c.coursetype = 'video' THEN c.videocourse
+                           ELSE c.documentcourse
+                       END as content
+                FROM courses c
+                LEFT JOIN user u ON c.id_user = u.id
+                LEFT JOIN categories cat ON c.id_categorie = cat.id
+                WHERE c.id_categorie = ? AND c.id != ?
+                LIMIT ?
+            ");
+            $stmt->execute([$categoryId, $currentCourseId, $limit]);
+
+            $relatedCourses = [];
+            while ($result = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                // Get tags for each course
+                $tagStmt = $db->prepare("
+                    SELECT t.* 
+                    FROM tags t 
+                    JOIN tagscours tc ON t.id = tc.id_tag 
+                    WHERE tc.id_course = ?
+                ");
+                $tagStmt->execute([$result['id']]);
+                $tags = $tagStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                $relatedCourses[] = new CourseDetails(
+                    $result['id'],
+                    $result['title'],
+                    $result['description'],
+                    $result['price'],
+                    $result['author_name'],
+                    $result['category_name'],
+                    $result['coursimage'],
+                    $result['coursetype'],
+                    $result['content'],
+                    $tags
+                );
+            }
+
+            return $relatedCourses;
+        } catch (PDOException $e) {
+            error_log("Error in getRelatedCourses: " . $e->getMessage());
+            return [];
+        }
+    }
+
+    public function formatPrice()
+    {
+        return number_format($this->price, 2);
+    }
+}
+
+session_start();
+
+
+
+try {
+    $courseId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+    if (!$courseId) {
+        throw new Exception("Invalid course ID");
+    }
+
+    $courseDetails = CourseDetails::getCourseById($courseId);
+    if (!$courseDetails) {
+        throw new Exception("Course not found");
+    }
+
+    $relatedCourses = CourseDetails::getRelatedCourses(
+        $courseDetails->getId(),
+        $courseId
+    );
+} catch (Exception $e) {
+    $_SESSION['error'] = $e->getMessage();
+    header("Location: course.php");
+    exit();
+}
+?>
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <style>
-        body {
-            font-family: system-ui, -apple-system, sans-serif;
-            color: #1a1a1a;
-            line-height: 1.5;
-            margin: 0;
-            padding: 0;
-            background-color: #f8f9fa;
-        }
-
-        .hero-section {
-            position: relative;
-            height: 400px;
-            width: 100%;
-            background-color: #1a1a1a;
-            overflow: hidden;
-        }
-
-        .hero-image {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            opacity: 0.8;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
-
-        .course-header {
-            background-color: white;
-            padding: 3rem 0;
-            border-bottom: 1px solid #eaeaea;
-            margin-bottom: 2rem;
-            margin-top: -100px;
-            position: relative;
-            z-index: 2;
-            border-radius: 1rem 1rem 0 0;
-            box-shadow: 0 -4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        .course-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 1rem;
-        }
-
-        .course-meta {
-            display: flex;
-            gap: 2rem;
-            color: #666;
-            font-size: 0.95rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .tags-container {
-            display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            margin-bottom: 2rem;
-        }
-
-        .tag {
-            background-color: #f3f4f6;
-            padding: 0.5rem 1rem;
-            border-radius: 9999px;
-            font-size: 0.875rem;
-            color: #4b5563;
-        }
-
-        .course-content {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 2rem;
-        }
-
-        .main-content {
-            background: white;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-        }
-
-        .sidebar {
-            background: white;
-            padding: 2rem;
-            border-radius: 0.75rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            height: fit-content;
-        }
-
-        .section-title {
-            font-size: 1.5rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #111;
-        }
-
-        .description {
-            color: #4b5563;
-            font-size: 1.1rem;
-            line-height: 1.7;
-            margin-bottom: 2rem;
-        }
-
-        .enroll-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 0.75rem;
-            text-align: center;
-        }
-
-        .price {
-            font-size: 2.5rem;
-            font-weight: 700;
-            color: #111;
-            margin-bottom: 1rem;
-        }
-
-        .enroll-button {
-            width: 100%;
-            padding: 1rem;
-            background-color: #4f46e5;
-            color: white;
-            border: none;
-            border-radius: 0.5rem;
-            font-size: 1.1rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-
-        .enroll-button:hover {
-            background-color: #4338ca;
-        }
-
-        .stats {
-            display: flex;
-            justify-content: center;
-            gap: 2rem;
-            margin-top: 1.5rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid #eaeaea;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-            font-weight: 600;
-            color: #111;
-        }
-
-        .stat-label {
-            color: #666;
-            font-size: 0.875rem;
-        }
-
-        .categories {
-            margin-top: 2rem;
-        }
-
-        .category-tag {
-            display: inline-block;
-            margin: 0.25rem;
-            padding: 0.5rem 1rem;
-            background-color: #f3f4f6;
-            border-radius: 0.5rem;
-            color: #4b5563;
-            font-size: 0.875rem;
-        }
-
-        @media (max-width: 768px) {
-            .course-content {
-                grid-template-columns: 1fr;
-            }
-
-            .hero-section {
-                height: 300px;
-            }
-
-            .course-header {
-                margin-top: -50px;
-            }
-
-            .course-meta {
-                flex-direction: column;
-                gap: 1rem;
-            }
-        }
-    </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?php echo htmlspecialchars($courseDetails->getTitle()); ?> - Course Details</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/alpinejs/3.13.5/cdn.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body>
-    <div class="hero-section">
-        <img src="/api/placeholder/1200/400" alt="Course Cover Image" class="hero-image">
-    </div>
+<body class="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+    <div x-data="{
+        activeTab: 'overview',
+        showMore: false,
+        progress: 85,
+        videoPlaying: false,
+        currentSection: null,
+        isSticky: false
+    }"
+        x-init="window.addEventListener('scroll', () => isSticky = window.pageYOffset > 100)"
+        class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-    <div class="course-header">
-        <div class="container">
-            <h1 class="course-title">Advanced Web Development with React</h1>
-            <div class="course-meta">
-                <div class="meta-item">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                        <circle cx="12" cy="7" r="4"></circle>
-                    </svg>
-                    Created by John Doe
-                </div>
-                <div class="meta-item">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                    </svg>
-                    Last updated April 2024
-                </div>
-            </div>
-            <div class="tags-container">
-                <span class="tag">React</span>
-                <span class="tag">JavaScript</span>
-                <span class="tag">Web Development</span>
-                <span class="tag">Frontend</span>
-            </div>
-        </div>
-    </div>
+        <!-- Course Header -->
+        <div class="relative bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
+            <div class="relative h-80 lg:h-96">
+                <img src="<?php echo htmlspecialchars($courseDetails->getImage()); ?>"
+                    alt="Course cover"
+                    class="w-full h-full object-cover transform transition-transform duration-700 hover:scale-105">
+                <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent"></div>
 
-    <div class="container">
-        <div class="course-content">
-            <div class="main-content">
-                <h2 class="section-title">Course Description</h2>
-                <p class="description">
-                    Master modern web development with React through this comprehensive course. You'll learn everything from fundamental concepts to advanced patterns, state management, and best practices for building scalable applications. This course includes hands-on projects and real-world examples to help you gain practical experience.
-                </p>
+                <!-- Video Preview Button -->
 
-                <h2 class="section-title">What You'll Learn</h2>
-                <p class="description">
-                    • React fundamentals and advanced concepts<br>
-                    • State management with Redux and Context API<br>
-                    • Modern React patterns and best practices<br>
-                    • Performance optimization techniques<br>
-                    • Building responsive and accessible interfaces<br>
-                    • Testing and debugging React applications
-                </p>
-            </div>
 
-            <div class="sidebar">
-                <div class="enroll-card">
-                    <div class="price">$99.99</div>
-                    <button class="enroll-button">Enroll Now</button>
-
-                    <div class="stats">
-                        <div class="stat-item">
-                            <div class="stat-value">2,456</div>
-                            <div class="stat-label">Students</div>
-                        </div>
-                        <div class="stat-item">
-                            <div class="stat-value">4.8</div>
-                            <div class="stat-label">Rating</div>
-                        </div>
+                <!-- Course Info Overlay -->
+                <div class="absolute bottom-0 left-0 p-8 w-full">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <span class="bg-blue-600 text-xs font-semibold px-4 py-1.5 rounded-full text-white">
+                            <?php echo htmlspecialchars($courseDetails->getCategory()); ?>
+                        </span>
+                        <span class="bg-purple-600 text-xs font-semibold px-4 py-1.5 rounded-full text-white">
+                            <?php echo ucfirst($courseDetails->getType()); ?> Course
+                        </span>
                     </div>
-                </div>
-
-                <div class="categories">
-                    <h3 class="section-title">Categories</h3>
-                    <div>
-                        <span class="category-tag">Development</span>
-                        <span class="category-tag">Web Design</span>
-                        <span class="category-tag">Programming</span>
-                        <span class="category-tag">Frontend</span>
+                    <h1 class="text-4xl font-bold text-white mb-4 leading-tight">
+                        <?php echo htmlspecialchars($courseDetails->getTitle()); ?>
+                    </h1>
+                    <div class="flex items-center space-x-4 text-white">
+                        <span class="flex items-center">
+                            <i class="fas fa-user mr-2"></i>
+                            <?php echo htmlspecialchars($courseDetails->getAuthor()); ?>
+                        </span>
                     </div>
                 </div>
             </div>
         </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Left Column -->
+            <div class="lg:col-span-2">
+                <!-- Navigation Tabs -->
+                <div class="bg-white rounded-xl shadow-lg mb-6 p-1"
+                    :class="{ 'fixed top-4 left-4 right-4 lg:max-w-[66%] z-50 transition-all duration-300': isSticky }">
+                    <nav class="flex space-x-2">
+                        <template x-for="tab in ['overview', 'curriculum', 'reviews']">
+                            <button @click="activeTab = tab"
+                                :class="{
+                                        'bg-blue-600 text-white': activeTab === tab,
+                                        'hover:bg-gray-100': activeTab !== tab
+                                    }"
+                                class="flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 capitalize">
+                                <span x-text="tab"></span>
+                            </button>
+                        </template>
+                    </nav>
+                </div>
+
+                <!-- Tab Content -->
+                <div class="bg-white rounded-2xl shadow-xl p-8">
+                    <!-- Overview Tab -->
+                    <div x-show="activeTab === 'overview'" x-transition>
+                        <!-- Course Description -->
+                        <div>
+                            <h2 class="text-2xl font-bold mb-4">Course Description</h2>
+                            <div class="prose max-w-none">
+                                <p class="text-gray-600 leading-relaxed">
+                                    <?php echo nl2br(htmlspecialchars($courseDetails->getDescription())); ?>
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Course Material -->
+                        <div class="mt-8">
+                            <?php if ($courseDetails->getType() === 'video'): ?>
+                                <div class="video-player rounded-xl overflow-hidden">
+                                    <video controls class="w-full">
+                                        <source src="<?php echo htmlspecialchars($courseDetails->getContent()); ?>" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                </div>
+                            <?php else: ?>
+                                <div class="text-content prose max-w-none">
+                                    <?php echo nl2br(htmlspecialchars($courseDetails->getContent())); ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+
+                    <!-- Tags Section -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-semibold mb-4">Tags</h3>
+                        <div class="flex flex-wrap gap-2">
+                            <?php foreach ($courseDetails->getTags() as $tag): ?>
+                                <span class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm">
+                                    <?php echo htmlspecialchars($tag['title']); ?>
+                                </span>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column - Course Info Card -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-2xl shadow-xl overflow-hidden sticky top-8">
+                    <!-- Pricing Section -->
+                    <div class="p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="text-3xl font-bold text-gray-900">
+                                $<?php echo $courseDetails->formatPrice(); ?>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="space-y-4">
+                            <button class="w-full bg-blue-600 text-white py-4 rounded-xl font-medium hover:bg-blue-700 transform hover:scale-[1.02] transition-all duration-200">
+                                Enroll Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Related Courses -->
+        <?php if (!empty($relatedCourses)): ?>
+            <div class="mt-12">
+                <h2 class="text-2xl font-bold mb-6">Related Courses</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <?php foreach ($relatedCourses as $course): ?>
+                        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                            <img src="<?php echo htmlspecialchars($course->getImage()); ?>"
+                                alt="Related Course"
+                                class="w-full h-48 object-cover">
+                            <div class="p-4">
+                                <h3 class="font-semibold mb-2">
+                                    <?php echo htmlspecialchars($course->getTitle()); ?>
+                                </h3>
+                                <a href="coursedetails.php?id=<?php echo $course->getId(); ?>"
+                                    class="text-blue-600 hover:text-blue-700 font-medium">
+                                    View Course
+                                </a>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        <?php endif; ?>
     </div>
 </body>
 

@@ -33,7 +33,10 @@ abstract class Course
     {
         $this->title = htmlspecialchars($title);
     }
-
+    public function getId()
+    {
+        return $this->id;
+    }
     public function getTitle()
     {
         return $this->title;

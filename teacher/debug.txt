@@ -1,0 +1,168 @@
+Script accessed at: 2025-01-21 01:19:41
+GET params: Array
+(
+    [id] => 97
+)
+
+Session started
+Connection included
+Course class included
+Tags included
+Course tags included
+Database connected
+Script accessed at: 2025-01-21 01:19:43
+GET params: Array
+(
+    [id] => 97
+)
+
+Session started
+Connection included
+Course class included
+Tags included
+Course tags included
+Database connected
+Script accessed at: 2025-01-21 01:19:43
+GET params: Array
+(
+    [id] => 97
+)
+
+Session started
+Connection included
+Course class included
+Tags included
+Course tags included
+Database connected
+Script accessed at: 2025-01-21 01:21:55
+GET params: Array
+(
+    [id] => 97
+)
+
+Session started
+Connection included
+Course class included
+Tags included
+Course tags included
+Database connected
+Database connected
+Course ID: 97
+Error: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'udm.cours' doesn't exist
+Script accessed at: 2025-01-21 01:23:47
+GET params: Array
+(
+    [id] => 97
+)
+
+Session started
+Connection included
+Course class included
+Tags included
+Course tags included
+Database connected
+Database connected
+Course ID: 97
+Error: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'udm.cours' doesn't exist
+Script accessed at: 2025-01-21 01:24:33
+GET params: Array
+(
+    [id] => 97
+)
+
+Session started
+Connection included
+Course class included
+Tags included
+Course tags included
+Database connected
+Database connected
+Course ID: 97
+Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cours_type' in 'field list'
+Script accessed at: 2025-01-21 01:26:27
+GET params: Array
+(
+    [id] => 97
+)
+
+Session started
+Connection included
+Course class included
+Tags included
+Course tags included
+Database connected
+Database connected
+Course ID: 97
+Error: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'cours_type' in 'field list'
+Script accessed at: 2025-01-21 01:27:33
+GET params: Array
+(
+    [id] => 97
+)
+
+Session started
+Connection included
+Course class included
+Tags included
+Course tags included
+Database connected
+Database connected
+Course ID: 97
+Course type: video
+Created VideoCourse object
+Course details loaded: yes
+Course tags loaded
+Script accessed at: 2025-01-21 01:27:50
+GET params: Array
+(
+    [id] => 97
+)
+
+Session started
+Connection included
+Course class included
+Tags included
+Course tags included
+Database connected
+Database connected
+Course ID: 97
+Course type: video
+Created VideoCourse object
+Course details loaded: yes
+Course tags loaded
+Script accessed at: 2025-01-21 01:28:01
+GET params: Array
+(
+    [id] => 97
+)
+
+Session started
+Connection included
+Course class included
+Tags included
+Course tags included
+Database connected
+Database connected
+Course ID: 97
+Course type: video
+Created VideoCourse object
+Course details loaded: yes
+Course tags loaded
+Script accessed at: 2025-01-21 01:28:06
+GET params: Array
+(
+    [id] => 98
+)
+
+Session started
+Connection included
+Course class included
+Tags included
+Course tags included
+Database connected
+Database connected
+Course ID: 98
+Course type: text
+Created TextCourse object
+Course details loaded: yes
+Course tags loaded

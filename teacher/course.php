@@ -210,6 +210,120 @@ try {
     <link rel="stylesheet" href="cours.css">
 
 </head>
+<style>
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        padding: 20px;
+    }
+
+    .course-card {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .course-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .course-image img {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        border-bottom: 1px solid #ddd;
+    }
+
+    .course-content {
+        padding: 15px;
+    }
+
+    .course-content h3 {
+        font-size: 1.5rem;
+        margin-bottom: 10px;
+        color: #333;
+    }
+
+    .course-content p {
+        font-size: 1rem;
+        color: #666;
+        margin-bottom: 15px;
+    }
+
+    .course-tags {
+        margin-bottom: 10px;
+    }
+
+    .course-tags .tag {
+        display: inline-block;
+        background-color: #f3f3f3;
+        color: #555;
+        font-size: 0.9rem;
+        padding: 5px 10px;
+        border-radius: 5px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+    }
+
+    .course-meta {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .course-meta .price {
+        font-weight: bold;
+        color: #27ae60;
+    }
+
+    .course-meta .type {
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        border-radius: 5px;
+        color: #fff;
+        font-size: 0.9rem;
+    }
+
+    .course-meta .type.tag-blue {
+        background-color: #3498db;
+    }
+
+    .course-meta .type.tag-purple {
+        background-color: #9b59b6;
+    }
+
+    .course-author,
+    .course-category {
+        font-size: 0.9rem;
+        color: #888;
+        margin-bottom: 10px;
+    }
+
+    .view-details-btn {
+        display: inline-block;
+        padding: 10px 15px;
+        background-color: #007bff;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+        text-align: center;
+        transition: background-color 0.3s;
+    }
+
+    .view-details-btn:hover {
+        background-color: #0056b3;
+    }
+
+    .view-details-btn i {
+        margin-right: 5px;
+    }
+</style>
 
 <body>
 
@@ -254,9 +368,12 @@ try {
             <?php endif; ?>
 
             <!-- Course Grid -->
+
             <div class="grid">
                 <?php foreach ($allCourses as $courseData):
                     $course = $courseData['course'];
+                    // Fetch tags for this course
+                    $courseTags = CourseTag::getTagsByCourse($db, $course->getId());
                 ?>
                     <div class="course-card">
                         <div class="course-image">
@@ -270,24 +387,47 @@ try {
                             <p><?php echo htmlspecialchars($course->getDescription()); ?></p>
 
                             <div class="course-tags">
-                                <span class="tag tag-blue">Tag 1</span>
-                                <span class="tag tag-green">Tag 2</span>
-                                <span class="tag tag-yellow">Tag 3</span>
+                                <?php if (!empty($courseTags)): ?>
+                                    <?php foreach ($courseTags as $tag): ?>
+                                        <span class="tag"><?php echo htmlspecialchars($tag['title']); ?></span>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
                             </div>
 
                             <div class="course-meta">
-                                <span class="price">$<?php echo number_format($course->getPrice(), 2); ?></span>
+                                <span class="price">
+                                    <i class="fas fa-dollar-sign"></i>
+                                    <?php echo number_format($course->getPrice(), 2); ?>
+                                </span>
                                 <span class="type <?php echo $course->getCoursType() === 'video' ? 'tag-blue' : 'tag-purple'; ?>">
+                                    <i class="fas <?php echo $course->getCoursType() === 'video' ? 'fa-video' : 'fa-book'; ?>"></i>
                                     <?php echo ucfirst($course->getCoursType()); ?>
                                 </span>
                             </div>
-                            <a href="coursedeta" class="view-details-btn">View Details</a>
+
+                            <?php if (isset($courseData['author'])): ?>
+                                <div class="course-author">
+                                    <i class="fas fa-user"></i>
+                                    By: <?php echo htmlspecialchars($courseData['author']); ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (isset($courseData['category_name'])): ?>
+                                <div class="course-category">
+                                    <i class="fas fa-tags"></i>
+                                    Category: <?php echo htmlspecialchars($courseData['category_name']); ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <a href="coursedetails.php?id=<?php echo $course->getId(); ?>" class="btn btn-primary">Show Details</a>
                         </div>
                     </div>
                 <?php endforeach; ?>
             </div>
 
-            <!-- Modal -->
+
+            <!-- Modal 
+            -->
             <div id="courseModal" class="modal">
                 <div class="modal-content">
                     <div class="modal-header">
