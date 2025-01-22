@@ -1,5 +1,25 @@
+<?php
+session_start();
+require_once 'classes/userClasse.php';
+
+
+?>
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,27 +27,110 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="bg-gray-50">
     <!-- Navigation -->
     <nav class="bg-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
+                <!-- Logo -->
                 <div class="flex items-center">
                     <span class="text-2xl font-bold text-blue-600">LearnHub</span>
                 </div>
-                <div class="hidden md:flex items-center space-x-8">
+
+                <!-- Center Navigation -->
+                <div class="hidden md:flex items-center space-x-4">
                     <a href="#" class="text-gray-700 hover:text-blue-600">Home</a>
-                    <a href="#" class="text-gray-700 hover:text-blue-600">Courses</a>
+
+                    <!-- Courses Dropdown -->
+                    <div class="relative group">
+                        <button class="flex items-center space-x-1 text-gray-700 hover:text-blue-600">
+                            <span>Courses</span>
+                            <i class="fas fa-chevron-down text-sm"></i>
+                        </button>
+                        <div class="absolute z-10 left-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 invisible group-hover:visible">
+                            <div class="py-1">
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">All Courses</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Featured</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Popular</a>
+                            </div>
+                        </div>
+                    </div>
+
                     <a href="#" class="text-gray-700 hover:text-blue-600">Categories</a>
                     <a href="#" class="text-gray-700 hover:text-blue-600">Instructors</a>
-                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
-                        Get Started
-                    </button>
                 </div>
+
+                <!-- Right Side - Login/User Section -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <!-- Search Icon -->
+                    <button class="text-gray-600 hover:text-blue-600">
+                        <i class="fas fa-search"></i>
+                    </button>
+
+                    <!-- Not Logged In -->
+                    <?php
+
+                    require_once 'classes/userClasse.php'; // Adjust path to where your User class is located
+
+                    if (!isset($_SESSION['user_id'])):
+                    ?>
+                        <!-- Not Logged In -->
+                        <div class="flex items-center space-x-3">
+                            <button class="text-gray-700 hover:text-blue-600 px-3 py-2">
+                                <i class="fas fa-sign-in-alt mr-2"></i>
+                                <a href="aside/login.php" class="text-gray-700 hover:text-blue-600">Login</a>
+                            </button>
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                <a href="aside/register.php" class="text-white">Sign Up</a>
+                            </button>
+                        </div>
+                    <?php else: ?>
+
+                        <!-- Logged In (initially hidden) -->
+                        <div class="flex items-center space-x-4">
+                            <!-- Notifications -->
+                            <button class="text-gray-600 hover:text-blue-600 relative">
+                                <i class="fas fa-bell"></i>
+                                <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                            </button>
+                            <div class="relative group">
+                                <div class="auth-buttons">
+                                    <?php if (isset($_SESSION['user_id'])): ?>
+                                        <span class="user-name">
+                                            <?php echo htmlspecialchars($_SESSION['name'] . ' ' . $_SESSION['last_name']); ?>
+                                        </span>
+                                        <a href="/logout.php" class="logout-btn">Logout</a>
+                                    <?php else: ?>
+                                        <a href="/login.php" class="login-btn">Login</a>
+                                        <a href="/signup.php" class="signup-btn">Sign Up</a>
+                                    <?php endif; ?>
+                                </div>
+                                <
+                                    <div class="absolute right-0 mt-2 w-48 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 invisible group-hover:visible">
+                                    <div class="py-1">
+                                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                            <i class="fas fa-user mr-2"></i>Profile
+                                        </a>
+                                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                            <i class="fas fa-book-open mr-2"></i>My Courses
+                                        </a>
+                                        <a href="#" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                            <i class="fas fa-cog mr-2"></i>Settings
+                                        </a>
+                                        <div class="border-t border-gray-100"></div>
+                                        <a href="logout.php" class="block px-4 py-2 text-sm text-red-600 hover:bg-gray-100">
+                                            <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                                        </a>
+                                    </div>
+                            </div>
+                        </div>
+                </div>
+            <?php endif; ?>
             </div>
         </div>
+        </div>
     </nav>
-
     <!-- Hero Section -->
     <div class="relative bg-blue-600 h-[600px]">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
@@ -40,7 +143,7 @@
                     </button>
                 </div>
                 <div class="md:w-1/2 mt-8 md:mt-0">
-                    <img src="/api/placeholder/600/400" alt="Learning" class="rounded-lg shadow-xl">
+                    <img src="cHJpdmF0ZS9sci9pbWFnZXMvd2Vic2l0ZS8yMDI0LTAyL3Jhd3BpeGVsb2ZmaWNlMTVfYV9taW5pbWFsX2FuZF9sZXNzX2RldGFpbF9pbGx1c3RyYXRpb25fb2ZfYV9sb19jZDcwMDZlNi0wOWExLTQ2ZGEtOTljMi0wMmU2YTg4OTg2N2VfMS5qcGc.webp" alt="Learning" class="rounded-lg shadow-xl">
                 </div>
             </div>
         </div>
@@ -233,4 +336,5 @@
         </div>
     </footer>
 </body>
+
 </html>

@@ -347,10 +347,32 @@ try {
                         </div>
 
                         <!-- Action Buttons -->
+                        <!-- Action Buttons -->
                         <div class="space-y-4">
-                            <button class="w-full bg-blue-600 text-white py-4 rounded-xl font-medium hover:bg-blue-700 transform hover:scale-[1.02] transition-all duration-200">
-                                Enroll Now
-                            </button>
+                            <?php if (isset($_SESSION['success'])): ?>
+                                <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4">
+                                    <?php
+                                    echo htmlspecialchars($_SESSION['success']);
+                                    unset($_SESSION['success']);
+                                    ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (isset($_SESSION['error'])): ?>
+                                <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                                    <?php
+                                    echo htmlspecialchars($_SESSION['error']);
+                                    unset($_SESSION['error']);
+                                    ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <form action="../students/process_inscription.php" method="POST">
+                                <input type="hidden" name="course_id" value="<?php echo $courseDetails->getId(); ?>">
+                                <button type="submit" class="w-full bg-blue-600 text-white py-4 rounded-xl font-medium hover:bg-blue-700 transform hover:scale-[1.02] transition-all duration-200">
+                                    Enroll Now
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>

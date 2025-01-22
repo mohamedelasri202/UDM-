@@ -14,6 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Store user data in session
         $_SESSION['user_id'] = $user->getId();
         $_SESSION['name'] = $user->getName();
+        $_SESSION['last_name'] = $user->getLastName();
+        $_SESSION['email'] = $user->getEmail();
         $_SESSION['role_id'] = $user->getRoleId();
 
         // Redirect based on role
@@ -25,12 +27,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: ../teacher/course.php');
                 break;
             default:
-                // Assuming admin role_id is 3
+                // Assuming admin role_id is 1
                 if ($user->getRoleId() == 1) {
                     header('Location:../aside/users.php');
                 } else {
                     // Fallback for any other roles
-                    header('Location: index.php');
+                    header('Location: ../front.php');
                 }
                 break;
         }
@@ -39,98 +41,95 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = $e->getMessage();
     }
 }
-?>
 
+if ($user = User::signin($email, $password)) {
+    session_start();
+    $_SESSION['user_id'] = $user->getId();
+    $_SESSION['user_email'] = $user->getEmail();
+    header('Location: index.php'); // Redirect to home page after login
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <style>
-        .container {
-            max-width: 500px;
-            margin: 50px auto;
-            padding: 20px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            border-radius: 5px;
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-
-        input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-        }
-
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-        }
-
-        button:hover {
-            background-color: #45a049;
-        }
-
-        .message {
-            padding: 10px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-            text-align: center;
-        }
-
-        .error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-    </style>
+    <title>Login - LearnHub</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body>
-    <div class="container">
-        <h2>Login</h2>
-
-        <?php if (!empty($message)): ?>
-            <div class="message error">
-                <?php echo htmlspecialchars($message); ?>
-            </div>
-        <?php endif; ?>
-
-        <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>">
-            <div class="form-group">
-                <label>Email <span class="required">*</span></label>
-                <input type="email" name="email" required>
+<body class="bg-gray-50">
+    <div class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+            <!-- Logo -->
+            <div class="text-center mb-8">
+                <h2 class="text-2xl font-bold text-blue-600">LearnHub</h2>
+                <h3 class="mt-2 text-xl font-semibold text-gray-900">Welcome Back</h3>
+                <p class="mt-2 text-gray-600">Please sign in to your account</p>
             </div>
 
-            <div class="form-group">
-                <label>Password <span class="required">*</span></label>
-                <input type="password" name="password" required>
-            </div>
+            <?php if (!empty($message)): ?>
+                <div class="mb-4 p-4 rounded-lg bg-red-50 border border-red-200 text-red-700">
+                    <?php echo htmlspecialchars($message); ?>
+                </div>
+            <?php endif; ?>
 
-            <button type="submit">Login</button>
-        </form>
+            <form method="POST" action="<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>" class="space-y-6">
+                <!-- Email Field -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-envelope text-gray-400"></i>
+                        </div>
+                        <input type="email" name="email" required
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg 
+                                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Enter your email">
+                    </div>
+                </div>
 
-        <p style="text-align: center; margin-top: 20px;">
-            Don't have an account? <a href="register.php">Register here</a>
-        </p>
+                <!-- Password Field -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Password
+                        <span class="text-red-500">*</span>
+                    </label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input type="password" name="password" required
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg 
+                                   focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Enter your password">
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit"
+                    class="w-full flex justify-center py-2 px-4 border border-transparent rounded-lg
+                           text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 
+                           focus:ring-offset-2 focus:ring-blue-500 font-medium">
+                    <i class="fas fa-sign-in-alt mr-2"></i>
+                    Login
+                </button>
+            </form>
+
+            <!-- Register Link -->
+            <p class="mt-8 text-center text-sm text-gray-600">
+                Don't have an account?
+                <a href="register.php" class="font-medium text-blue-600 hover:text-blue-500">
+                    Register here
+                </a>
+            </p>
+        </div>
     </div>
 </body>
 

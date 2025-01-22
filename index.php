@@ -1,9 +1,6 @@
-
-
-
-
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,60 +14,61 @@
         }
     </style>
 </head>
+
 <body class="bg-gray-50">
     <div class="min-h-screen flex">
-   <!-- Sidebar -->
-<div class="w-64 bg-white shadow-lg p-4 flex flex-col">
-    <div class="flex items-center space-x-3 mb-8">
-        <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
-            <i data-feather="user" class="text-white"></i>
+        <!-- Sidebar -->
+        <div class="w-64 bg-white shadow-lg p-4 flex flex-col">
+            <div class="flex items-center space-x-3 mb-8">
+                <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center">
+                    <i data-feather="user" class="text-white"></i>
+                </div>
+                <div>
+                    <h2 class="font-semibold text-gray-800">Henry Klein</h2>
+                    <p class="text-sm text-gray-500">Administrator</p>
+                </div>
+            </div>
+
+            <nav class="space-y-2 flex-1">
+                <!-- Users Section -->
+                <div class="text-gray-800 font-medium px-4 py-2 mb-2">Main Menu</div>
+
+                <a href="/users" class="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-lg flex items-center space-x-3 font-medium">
+                    <i data-feather="users" class="w-4 h-4"></i>
+                    <span>Users</span>
+                </a>
+
+                <!-- Courses Section -->
+                <a href="aside/users.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <i data-feather="book-open" class="w-4 h-4"></i>
+                    <span>Courses</span>
+                </a>
+
+                <!-- Categories Section -->
+                <a href="aside/categories.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <i data-feather="folder" class="w-4 h-4"></i>
+                    <span>Categories</span>
+                </a>
+
+                <!-- Tags Section -->
+                <a href="aside/courses.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <i data-feather="tag" class="w-4 h-4"></i>
+                    <span>Tags</span>
+                </a>
+
+                <!-- Statistics Section -->
+                <a href="" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
+                    <i data-feather="bar-chart-2" class="w-4 h-4"></i>
+                    <span>Statistics</span>
+                </a>
+            </nav>
+
+            <!-- Logout Button -->
+            <a href="/logout" class="mt-4 flex items-center space-x-2 text-gray-600 hover:text-red-600 px-4 py-2.5 rounded-lg transition-colors">
+                <i data-feather="log-out" class="w-4 h-4"></i>
+                <span>Logout</span>
+            </a>
         </div>
-        <div>
-            <h2 class="font-semibold text-gray-800">Henry Klein</h2>
-            <p class="text-sm text-gray-500">Administrator</p>
-        </div>
-    </div>
-    
-    <nav class="space-y-2 flex-1">
-        <!-- Users Section -->
-        <div class="text-gray-800 font-medium px-4 py-2 mb-2">Main Menu</div>
-        
-        <a href="/users" class="bg-blue-50 text-blue-600 px-4 py-2.5 rounded-lg flex items-center space-x-3 font-medium">
-            <i data-feather="users" class="w-4 h-4"></i>
-            <span>Users</span>
-        </a>
-
-        <!-- Courses Section -->
-        <a href="aside/users.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
-            <i data-feather="book-open" class="w-4 h-4"></i>
-            <span>Courses</span>
-        </a>
-
-        <!-- Categories Section -->
-        <a href="aside/categories.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
-            <i data-feather="folder" class="w-4 h-4"></i>
-            <span>Categories</span>
-        </a>
-
-        <!-- Tags Section -->
-        <a href="aside/courses.php" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
-            <i data-feather="tag" class="w-4 h-4"></i>
-            <span>Tags</span>
-        </a>
-
-        <!-- Statistics Section -->
-        <a href="" class="text-gray-600 px-4 py-2.5 flex items-center space-x-3 hover:bg-gray-50 rounded-lg transition-colors">
-            <i data-feather="bar-chart-2" class="w-4 h-4"></i>
-            <span>Statistics</span>
-        </a>
-    </nav>
-
-    <!-- Logout Button -->
-    <a href="/logout" class="mt-4 flex items-center space-x-2 text-gray-600 hover:text-red-600 px-4 py-2.5 rounded-lg transition-colors">
-        <i data-feather="log-out" class="w-4 h-4"></i>
-        <span>Logout</span>
-    </a>
-</div>
 
         <!-- Main Content -->
         <div class="flex-1 p-8 bg-gray-50">
@@ -91,7 +89,7 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
                     <div class="flex justify-between items-center">
                         <div>
@@ -199,7 +197,7 @@
                                 <p class="text-sm text-blue-500 font-medium">30 tasks, 5 issues</p>
                             </div>
                         </div>
-                        
+
                         <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                             <div class="flex items-center space-x-3">
                                 <div class="w-10 h-10 bg-green-500 rounded-lg flex items-center justify-center">
@@ -224,4 +222,5 @@
         feather.replace();
     </script>
 </body>
+
 </html>
