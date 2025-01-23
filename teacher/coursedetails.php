@@ -258,14 +258,13 @@ try {
 
                     <!-- Center Navigation -->
                     <div class="hidden md:flex items-center space-x-4">
-                        <a href="#" class="text-gray-700 hover:text-blue-600">Home</a>
+                        <a href="../front.php" class="text-gray-700 hover:text-blue-600">Home</a>
                         <?php if (isset($_SESSION['user_id'])): ?>
-                            <a href="teacher/mes-courses.php" class="text-gray-700 hover:text-blue-600">
+                            <a href="mes-courses.php" class="text-gray-700 hover:text-blue-600">
                                 <i class="fas fa-book-reader mr-2"></i>Mes Courses
                             </a>
                         <?php endif; ?>
-                        <a href="#" class="text-gray-700 hover:text-blue-600">Categories</a>
-                        <a href="#" class="text-gray-700 hover:text-blue-600">Instructors</a>
+
                     </div>
 
                     <!-- Right Side - Login/User Section -->

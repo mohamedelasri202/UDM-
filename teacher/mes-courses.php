@@ -149,12 +149,10 @@ try {
                                 Prix: <?php echo number_format($course->getPrice(), 2); ?> €
                             </div>
 
-                            <!-- <a href="../teacher/mes-courses.php echo $course->getId(); ?>"
-                               
-                            class="mt-4 inline-block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
-/*
-                             /
-                            </a> -->
+                            <a href="../teacher/mes-courses.php echo $course->getId(); ?>"
+                                class="mt-4 inline-block px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors">
+                                <?php echo $course->getCoursType() === 'video' ? 'Regarder le cours' : 'Lire le cours'; ?>
+                            </a>
                         </div>
                     </div>
                 <?php endforeach; ?>

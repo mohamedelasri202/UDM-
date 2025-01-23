@@ -144,6 +144,59 @@ abstract class Course
             return null;
         }
     }
+    public static function searchCoursesByTitle($db, $searchTerm)
+    {
+        try {
+            $query = "SELECT c.*, u.name as author, cat.title as category_name 
+                  FROM courses c 
+                  LEFT JOIN user u ON c.id_user = u.id 
+                  LEFT JOIN categories cat ON c.id_categorie = cat.id 
+                  WHERE c.title LIKE :searchTerm";
+
+            $stmt = $db->prepare($query);
+            $stmt->execute([':searchTerm' => "%{$searchTerm}%"]);
+
+            $courses = [];
+            while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+                if ($row['coursetype'] === 'text') {
+                    $course = new TextCourse(
+                        $row['id'],
+                        $row['title'],
+                        $row['description'],
+                        $row['price'],
+                        $row['id_user'],
+                        $row['id_categorie'],
+                        $row['coursimage'],
+                        'text',
+                        $row['documentcourse']
+                    );
+                } else {
+                    $course = new VideoCourse(
+                        $row['id'],
+                        $row['title'],
+                        $row['description'],
+                        $row['price'],
+                        $row['id_user'],
+                        $row['id_categorie'],
+                        $row['coursimage'],
+                        'video',
+                        $row['videocourse']
+                    );
+                }
+
+                $courses[] = [
+                    'course' => $course,
+                    'author' => $row['author'],
+                    'category_name' => $row['category_name']
+                ];
+            }
+
+            return $courses;
+        } catch (PDOException $e) {
+            error_log("Error searching courses: " . $e->getMessage());
+            return [];
+        }
+    }
 }
 
 class TextCourse extends Course

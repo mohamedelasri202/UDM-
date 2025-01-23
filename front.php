@@ -7,23 +7,37 @@ require_once 'classes/tagscours.php';
 
 // Fetch existing courses
 $db = Database::getInstance()->getConnection();
+$db = Database::getInstance()->getConnection();
 try {
+    // Get search query
+    $searchQuery = isset($_GET['query']) ? trim($_GET['query']) : '';
+
+    // Fetch courses
     $textCourse = new TextCourse();
     $videoCourse = new VideoCourse();
 
-    $textCourses = $textCourse->afficheCourse($db);
-    $videoCourses = $videoCourse->afficheCourse($db);
+    if (!empty($searchQuery)) {
+        // If search query exists, use search method
+        $allCourses = Course::searchCoursesByTitle($db, $searchQuery);
+    } else {
+        // Otherwise, fetch all courses
+        $textCourses = $textCourse->afficheCourse($db);
+        $videoCourses = $videoCourse->afficheCourse($db);
+        $allCourses = array_merge($textCourses, $videoCourses);
+    }
 
-    // Merge and sort all courses
-    $allCourses = array_merge($textCourses, $videoCourses);
-    usort($allCourses, function ($a, $b) {
-        return strcmp($b['course']->getTitle(), $a['course']->getTitle());
-    });
+    // Sort courses if not already sorted by search results
+    if (empty($searchQuery)) {
+        usort($allCourses, function ($a, $b) {
+            return strcmp($b['course']->getTitle(), $a['course']->getTitle());
+        });
+    }
 } catch (PDOException $e) {
     error_log("Error fetching courses: " . $e->getMessage());
     $error = "An error occurred while loading courses.";
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
@@ -172,11 +186,22 @@ try {
                 </div>
 
                 <!-- Right Side - Login/User Section -->
+                <!-- Right Side - Login/User Section -->
                 <div class="hidden md:flex items-center space-x-4">
                     <!-- Search Icon -->
-                    <button class="text-gray-600 hover:text-blue-600">
-                        <i class="fas fa-search"></i>
-                    </button>
+                    <form method="GET" class="flex items-center">
+                        <input
+                            type="text"
+                            name="query"
+                            placeholder="Search courses..."
+                            class="px-3 py-2 border rounded-l-lg w-64"
+                            value="<?php echo htmlspecialchars($searchQuery); ?>">
+                        <button
+                            type="submit"
+                            class="bg-blue-600 text-white px-4 py-2 rounded-r-lg hover:bg-blue-700">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
 
                     <?php if (!isset($_SESSION['user_id'])): ?>
                         <!-- Not Logged In -->
@@ -213,9 +238,21 @@ try {
                         </div>
                     <?php endif; ?>
                 </div>
+
             </div>
         </div>
     </nav>
+
+
+    <?php if (!empty($searchQuery)): ?>
+        <div class="container mx-auto mt-4">
+            <h2 class="text-2xl font-bold mb-4 px-4">
+                Search Results for "<?php echo htmlspecialchars($searchQuery); ?>"
+                <?php if (!empty($searchQuery)): ?>
+                <?php endif; ?>
+            </h2>
+        </div>
+    <?php endif; ?>
 
     <!-- Hero Section -->
     <div class="relative bg-blue-600 h-[600px]">
