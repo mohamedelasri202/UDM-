@@ -59,7 +59,7 @@ class Inscription
     }
 
     // Method to check if user is already enrolled in the course
-    private function isAlreadyEnrolled($db)
+    public function isAlreadyEnrolled($db)
     {
         try {
             $query = "SELECT * FROM inscription WHERE id_user = :id_user AND id_course = :id_course";

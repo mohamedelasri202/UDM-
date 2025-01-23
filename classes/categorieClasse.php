@@ -1,11 +1,6 @@
 <?php
 
-
-
-
-
-
-require_once '../classes/connection.php';
+require_once 'connection.php';
 class Category
 {
     private $id;

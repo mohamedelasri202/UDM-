@@ -14,8 +14,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Store user data in session
         $_SESSION['user_id'] = $user->getId();
         $_SESSION['name'] = $user->getName();
-        $_SESSION['last_name'] = $user->getLastName();
-        $_SESSION['email'] = $user->getEmail();
         $_SESSION['role_id'] = $user->getRoleId();
 
         // Redirect based on role
@@ -27,12 +25,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 header('Location: ../teacher/course.php');
                 break;
             default:
-                // Assuming admin role_id is 1
+                // Assuming admin role_id is 3
                 if ($user->getRoleId() == 1) {
                     header('Location:../aside/users.php');
                 } else {
                     // Fallback for any other roles
-                    header('Location: ../front.php');
+                    header('Location: index.php');
                 }
                 break;
         }
@@ -40,14 +38,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } catch (Exception $e) {
         $error = $e->getMessage();
     }
-}
-
-if ($user = User::signin($email, $password)) {
-    session_start();
-    $_SESSION['user_id'] = $user->getId();
-    $_SESSION['user_email'] = $user->getEmail();
-    header('Location: index.php'); // Redirect to home page after login
-    exit();
 }
 ?>
 <!DOCTYPE html>

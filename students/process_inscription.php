@@ -3,6 +3,7 @@ session_start();
 require_once '../classes/connection.php';
 require_once 'inscriptioncourse.php';
 
+
 if (!isset($_SESSION['user_id'])) {
     header('Location: ../aside/login.php');
     exit();
@@ -30,5 +31,5 @@ try {
     $_SESSION['error'] = "An error occurred while processing your enrollment";
 }
 
-header('Location:../teacher/course.php?id=' . $_POST['course_id']);
+header('Location:../teacher/coursedetails.php?id=' . $_POST['course_id']);
 exit();

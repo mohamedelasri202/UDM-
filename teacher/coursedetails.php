@@ -6,6 +6,19 @@ require_once '../classes/categorieClasse.php';
 require_once '../classes/tags.php';
 require_once '../classes/tagscours.php';
 
+
+
+
+
+
+session_start();
+
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ../aside/login.php');
+    exit();
+}
+// Rest of your existing code...
+
 class CourseDetails
 {
     private $id;
@@ -186,7 +199,7 @@ class CourseDetails
     }
 }
 
-session_start();
+
 
 
 
@@ -235,6 +248,71 @@ try {
         x-init="window.addEventListener('scroll', () => isSticky = window.pageYOffset > 100)"
         class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
+        <nav class="bg-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <!-- Logo -->
+                    <div class="flex items-center">
+                        <span class="text-2xl font-bold text-blue-600">LearnHub</span>
+                    </div>
+
+                    <!-- Center Navigation -->
+                    <div class="hidden md:flex items-center space-x-4">
+                        <a href="#" class="text-gray-700 hover:text-blue-600">Home</a>
+                        <?php if (isset($_SESSION['user_id'])): ?>
+                            <a href="teacher/mes-courses.php" class="text-gray-700 hover:text-blue-600">
+                                <i class="fas fa-book-reader mr-2"></i>Mes Courses
+                            </a>
+                        <?php endif; ?>
+                        <a href="#" class="text-gray-700 hover:text-blue-600">Categories</a>
+                        <a href="#" class="text-gray-700 hover:text-blue-600">Instructors</a>
+                    </div>
+
+                    <!-- Right Side - Login/User Section -->
+                    <div class="hidden md:flex items-center space-x-4">
+                        <!-- Search Icon -->
+                        <button class="text-gray-600 hover:text-blue-600">
+                            <i class="fas fa-search"></i>
+                        </button>
+
+                        <?php if (!isset($_SESSION['user_id'])): ?>
+                            <!-- Not Logged In -->
+                            <div class="flex items-center space-x-3">
+                                <button class="text-gray-700 hover:text-blue-600 px-3 py-2">
+                                    <i class="fas fa-sign-in-alt mr-2"></i>
+                                    <a href="aside/login.php">Login</a>
+                                </button>
+                                <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                    <a href="aside/register.php">Sign Up</a>
+                                </button>
+                            </div>
+                        <?php else: ?>
+                            <!-- Logged In -->
+                            <div class="flex items-center space-x-4">
+                                <!-- Notifications -->
+                                <button class="text-gray-600 hover:text-blue-600 relative">
+                                    <i class="fas fa-bell"></i>
+                                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">3</span>
+                                </button>
+                                <!-- User Name and Logout -->
+                                <div class="flex items-center space-x-4">
+                                    <span class="text-gray-700">
+                                        <?php
+                                        $displayName = isset($_SESSION['name']) ? htmlspecialchars($_SESSION['name']) : '';
+                                        $displayLastName = isset($_SESSION['last_name']) ? htmlspecialchars($_SESSION['last_name']) : '';
+                                        echo trim("$displayName $displayLastName");
+                                        ?>
+                                    </span>
+                                    <a href="teacher/logout.php" class="text-red-600 hover:text-red-700 px-3 py-2 flex items-center">
+                                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                                    </a>
+                                </div>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </nav>
         <!-- Course Header -->
         <div class="relative bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
             <div class="relative h-80 lg:h-96">
